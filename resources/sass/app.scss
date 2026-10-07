@@ -1,0 +1,243 @@
+// 1. Override Bootstrap variables
+$primary: #2F5D3A;
+$secondary: #1F3A27;
+$warning: #E0A93B;
+$success: #2F5D3A;
+$info: #2B6CB0;
+$danger: #C53030;
+$body-bg: #FAF7F0;
+$body-color: #1F2A22;
+$card-bg: #FFFFFF;
+$card-border-radius: 16px;
+$card-border-color: #ECE6D6;
+$border-color: #ECE6D6;
+$font-family-base: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-size-base: 0.9375rem; // 15px
+$btn-border-radius: 9999px;
+$btn-border-radius-sm: 9999px;
+$btn-border-radius-lg: 9999px;
+
+// 2. Import Bootstrap SCSS
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+// 3. Custom Design Tokens and System
+:root {
+    --od-primary: #2F5D3A;
+    --od-dark-green: #1F3A27;
+    --od-gold: #E0A93B;
+    --od-gold-dark: #8F5E05; // WCAG AA text contrast on light backgrounds
+    --od-bg: #FAF7F0;
+    --od-card-bg: #FFFFFF;
+    --od-text: #1F2A22;
+    --od-muted: #535E55; // WCAG AA compliant (5.5:1 contrast on #FAF7F0)
+    --od-border: #ECE6D6;
+
+    --od-status-ok: #2F5D3A;
+    --od-status-pending: #8F5E05;
+    --od-status-transit: #2B6CB0;
+    --od-status-danger: #C53030;
+}
+
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    background-color: var(--od-bg);
+    color: var(--od-text);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6, .heading-serif, .font-serif {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    color: var(--od-dark-green);
+}
+
+.text-muted {
+    color: var(--od-muted) !important;
+}
+
+.text-darkgreen {
+    color: var(--od-dark-green) !important;
+}
+
+.bg-darkgreen {
+    background-color: var(--od-dark-green) !important;
+    color: #FFFFFF !important;
+}
+
+.text-gold {
+    color: var(--od-gold-dark) !important;
+}
+
+.card {
+    border-radius: 16px;
+    border: 1px solid var(--od-border);
+    background-color: var(--od-card-bg);
+    box-shadow: 0 2px 8px rgba(31, 42, 34, 0.04);
+}
+
+.btn {
+    border-radius: 9999px;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--od-border);
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+    background-color: var(--od-primary);
+    border-color: var(--od-primary);
+    color: #FFFFFF;
+
+    &:hover, &:focus {
+        background-color: var(--od-dark-green);
+        border-color: var(--od-dark-green);
+        color: #FFFFFF;
+    }
+}
+
+.btn-darkgreen {
+    background-color: var(--od-dark-green);
+    border-color: var(--od-dark-green);
+    color: #FFFFFF !important;
+
+    &:hover, &:focus {
+        background-color: #14261a;
+        border-color: #14261a;
+        color: #FFFFFF !important;
+    }
+}
+
+.btn-gold {
+    background-color: var(--od-gold);
+    border-color: var(--od-gold);
+    color: #1F2A22;
+
+    &:hover, &:focus {
+        background-color: #c9932d;
+        border-color: #c9932d;
+        color: #1F2A22;
+    }
+}
+
+.btn-outline-darkgreen {
+    color: var(--od-dark-green);
+    border-color: var(--od-dark-green);
+    background-color: transparent;
+
+    &:hover, &:focus {
+        background-color: var(--od-dark-green);
+        color: #FFFFFF !important;
+        border-color: var(--od-dark-green);
+    }
+}
+
+.text-muted-custom {
+    color: var(--od-muted) !important;
+}
+
+// Status badges (WCAG AA Compliant contrast ratios)
+.badge-status-delivered,
+.badge-status-approved,
+.badge-status-active,
+.badge-status-paid,
+.badge-status-ok {
+    background-color: #EBF5EE;
+    color: #2F5D3A;
+    border: 1px solid #C4E2CB;
+    border-radius: 9999px;
+    padding: 0.35em 0.8em;
+    font-weight: 600;
+}
+
+.badge-status-pending,
+.badge-status-packing {
+    background-color: #FEF8E7;
+    color: #8F5E05; // 5.2:1 contrast
+    border: 1px solid #F9E2A8;
+    border-radius: 9999px;
+    padding: 0.35em 0.8em;
+    font-weight: 600;
+}
+
+.badge-status-transit,
+.badge-status-in_transit {
+    background-color: #EBF4FC;
+    color: #2B6CB0; // 5.5:1 contrast
+    border: 1px solid #BEE3F8;
+    border-radius: 9999px;
+    padding: 0.35em 0.8em;
+    font-weight: 600;
+}
+
+.badge-status-new,
+.badge-status-low_stock,
+.badge-status-cancelled,
+.badge-status-rejected,
+.badge-status-suspended,
+.badge-status-unpaid {
+    background-color: #FDF0EE;
+    color: #C53030; // 5.2:1 contrast
+    border: 1px solid #FBD0CB;
+    border-radius: 9999px;
+    padding: 0.35em 0.8em;
+    font-weight: 600;
+}
+
+// Mobile-first adjustments (375px)
+@media (max-width: 576px) {
+    .card {
+        padding: 1rem !important;
+    }
+    .display-5, .display-6 {
+        font-size: 1.75rem !important;
+    }
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+
+// Pagination styling
+.pagination {
+    margin-bottom: 0;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    .page-item {
+        .page-link {
+            color: var(--od-dark-green);
+            background-color: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px !important;
+            padding: 0.45rem 0.85rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+
+            &:hover {
+                background-color: #EBF5EE;
+                border-color: var(--od-primary);
+                color: var(--od-primary);
+            }
+        }
+
+        &.active .page-link {
+            background-color: var(--od-primary);
+            border-color: var(--od-primary);
+            color: #FFFFFF;
+            box-shadow: 0 2px 4px rgba(47, 93, 58, 0.25);
+        }
+
+        &.disabled .page-link {
+            color: #A0AEC0;
+            background-color: #F7FAFC;
+            border-color: #EDF2F7;
+        }
+    }
+}
+

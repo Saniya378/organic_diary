@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Farm Account Approved</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FAF7F0; margin: 0; padding: 24px; color: #1F2A22; }
+        .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #ECE6D6; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+        .header { background: #1F3A27; color: #ffffff; padding: 32px 28px; text-align: center; }
+        .header h1 { margin: 0 0 6px 0; font-family: Georgia, serif; font-size: 24px; color: #ffffff; }
+        .header p { margin: 0; color: #E0A93B; font-size: 14px; font-weight: 500; }
+        .content { padding: 28px; }
+        .badge-approved { display: inline-block; background-color: #E8F5E9; color: #2F5D3A; font-weight: bold; font-size: 14px; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; }
+        .btn-portal { display: inline-block; background-color: #2F5D3A; color: #ffffff !important; padding: 12px 28px; border-radius: 30px; font-weight: bold; text-decoration: none; margin-top: 20px; }
+        .footer { background: #FAF7F0; text-align: center; padding: 20px; font-size: 12px; color: #6B756D; border-top: 1px solid #ECE6D6; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Organic Dairy Gilgit-Baltistan</h1>
+            <p>HIMALAYAN FARMER VERIFICATION</p>
+        </div>
+
+        <div class="content">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <span class="badge-approved">&#10004; Farm Approved</span>
+            </div>
+
+            <h2 style="font-family: Georgia, serif; color: #1F3A27; margin-top: 0; text-align: center;">Welcome to the Marketplace!</h2>
+            <p style="font-size: 15px; line-height: 1.5; color: #1F2A22;">
+                Dear <strong>{{ $seller->sellerProfile->farm_name ?? $seller->name }}</strong>,<br>
+                Congratulations! Your farm profile has been verified and approved by the Organic Dairy administration team.
+            </p>
+
+            <p style="font-size: 14px; line-height: 1.6; color: #4A5568;">
+                You can now log into your Farmer Portal to list your organic milk, butter, ghee, cheese, and yogurt batches. Once approved, your products will be visible to buyers across Gilgit-Baltistan and Pakistan.
+            </p>
+
+            <div style="text-align: center;">
+                <a href="{{ route('seller.dashboard') }}" class="btn-portal">
+                    Go to Farmer Dashboard &rarr;
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; {{ date('Y') }} Organic Dairy Gilgit-Baltistan &bull; Sustainable Agriculture Network
+        </div>
+    </div>
+</body>
+</html>

@@ -129,10 +129,16 @@
                                     <th class="text-center">Quantity</th>
                                     <th class="text-end">Unit Price</th>
                                     <th class="text-end">Line Total</th>
+                                    @if($order->status === 'delivered')
+                                        <th class="text-end">Verified Review</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($order->items as $item)
+                                    @php
+                                        $itemReview = $order->reviews->firstWhere('product_id', $item->product_id);
+                                    @endphp
                                     <tr>
                                         <td>
                                             <div class="fw-bold text-dark">{{ $item->product_name }}</div>
@@ -143,6 +149,21 @@
                                         <td class="text-center fw-bold text-dark-green">{{ $item->quantity }}</td>
                                         <td class="text-end">Rs {{ number_format($item->unit_price) }}</td>
                                         <td class="text-end fw-bold text-dark">Rs {{ number_format($item->line_total) }}</td>
+                                        @if($order->status === 'delivered')
+                                            <td class="text-end">
+                                                @if($itemReview)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill">
+                                                        <i class="bi bi-patch-check-fill me-1"></i> Reviewed ({{ $itemReview->rating }}★)
+                                                    </span>
+                                                @elseif($item->product)
+                                                    <a href="{{ route('shop.show', $item->product->slug) }}#reviews-section" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 text-xs fw-semibold">
+                                                        <i class="bi bi-star me-1"></i> Write Review
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">-</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -248,7 +269,7 @@
                     <div class="card-body p-4">
                         @if($orderPayment->isUnderReview())
                             <div class="alert alert-warning rounded-3 border-0 small mb-3">
-                                <i class="bi bi-hourglass-split me-1"></i> <strong>Payment Under Review:</strong> Admin is reviewing Transaction ID <code class="text-dark">{{ $orderPayment->transaction_id ?? $orderPayment->gateway_ref }}</code>. Your order will be confirmed upon verification.
+                                <i class="bi bi-hourglass-split me-1"></i> <strong>Payment Under Review:</strong> The farm/seller is reviewing Transaction ID <code class="text-dark">{{ $orderPayment->transaction_id ?? $orderPayment->gateway_ref }}</code>. Your order will be confirmed upon verification.
                             </div>
                         @elseif($orderPayment->isRejected())
                             <div class="alert alert-danger rounded-3 border-0 small mb-3">
@@ -356,37 +377,47 @@
                 </div>
             </div>
 
-            <!-- Shipping Destination Card -->
+            <!-- Shipping Destination & Slot Card -->
             <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-white py-3 px-4 border-bottom border-light">
+                <div class="card-header bg-white py-3 px-4 border-bottom border-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold font-serif text-dark-green">
-                        <i class="bi bi-geo-alt-fill text-gold me-1"></i> Delivery Address
+                        <i class="bi bi-geo-alt-fill text-gold me-1"></i> Delivery &amp; Slot
                     </h6>
+                    @php
+                        $slotLabels = [
+                            'morning' => ['label' => '🌅 Morning (6am-9am)', 'class' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'],
+                            'evening' => ['label' => '🌆 Evening (5pm-8pm)', 'class' => 'bg-info-subtle text-info-emphasis border border-info-subtle'],
+                            'anytime' => ['label' => '🚚 Standard Daytime', 'class' => 'bg-light text-dark border'],
+                        ];
+                        $slot = $order->delivery_slot ?? ($order->orderGroup->delivery_slot ?? 'morning');
+                        $slotInfo = $slotLabels[$slot] ?? $slotLabels['morning'];
+                    @endphp
+                    <span class="badge {{ $slotInfo['class'] }} rounded-pill px-2.5 py-1 text-xs fw-semibold">
+                        {{ $slotInfo['label'] }}
+                    </span>
                 </div>
                 <div class="card-body p-4">
                     <strong class="text-dark d-block mb-1">{{ $order->orderGroup->shipping_full_name }}</strong>
                     <div class="small text-muted mb-2"><i class="bi bi-telephone me-1"></i> {{ $order->orderGroup->shipping_phone }}</div>
-                    <div class="small text-secondary">{{ $order->orderGroup->shipping_address_line }}, {{ $order->orderGroup->shipping_area }}, <strong>{{ $order->orderGroup->shipping_city }}</strong>, Gilgit-Baltistan</div>
+                    <div class="small text-secondary mb-3">{{ $order->orderGroup->shipping_address_line }}, {{ $order->orderGroup->shipping_area }}, <strong>{{ $order->orderGroup->shipping_city }}</strong>, Gilgit-Baltistan</div>
+
+                    @if($order->rider_name)
+                        <div class="p-2.5 bg-light rounded-3 border">
+                            <div class="small fw-bold text-dark mb-1"><i class="bi bi-bicycle text-success me-1"></i> Assigned Delivery Rider:</div>
+                            <div class="small text-dark fw-semibold">{{ $order->rider_name }}</div>
+                            <div class="small text-muted"><a href="tel:{{ $order->rider_phone }}" class="text-decoration-none text-primary"><i class="bi bi-telephone me-1"></i> {{ $order->rider_phone }}</a></div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
-            <!-- WhatsApp Order Support Card -->
-            @php
-                $orderWaPhone = $order->seller->phone ?? \App\Models\Setting::get('whatsapp_number', \App\Models\Setting::get('contact_phone', '03555123456'));
-                $cleanOrderPhone = preg_replace('/[^0-9]/', '', $orderWaPhone);
-                if (str_starts_with($cleanOrderPhone, '0')) {
-                    $cleanOrderPhone = '92' . substr($cleanOrderPhone, 1);
-                } elseif (!str_starts_with($cleanOrderPhone, '92') && strlen($cleanOrderPhone) === 10) {
-                    $cleanOrderPhone = '92' . $cleanOrderPhone;
-                }
-                $orderMsg = rawurlencode("Hello! I have a question regarding my Order #{$order->order_no} ({$order->seller->sellerProfile->farm_name ?? 'Organic Dairy GB'}).");
-            @endphp
+            <!-- Live Support Card -->
             <div class="card border-0 shadow-sm rounded-4 mt-3 text-center p-3" style="background: #F4FBF6; border: 1px solid #D2EED9 !important;">
-                <div class="small fw-bold text-dark mb-1"><i class="bi bi-headset me-1 text-success"></i> Need Help with this Shipment?</div>
-                <div class="text-xs text-muted mb-2">Directly reach out to the farmer or support via WhatsApp.</div>
-                <a href="https://wa.me/{{ $cleanOrderPhone }}?text={{ $orderMsg }}" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill btn-sm fw-bold px-3 py-1.5 shadow-xs">
-                    <i class="bi bi-whatsapp me-1"></i> WhatsApp Support
-                </a>
+                <div class="small fw-bold text-dark mb-1"><i class="bi bi-headset me-1 text-success"></i> Need Help with this Order?</div>
+                <div class="text-xs text-muted mb-2">Get instant live AI assistance or contact our support team.</div>
+                <button type="button" onclick="window.openSupportChat('Track Order #{{ $order->order_no }}')" class="btn btn-success rounded-pill btn-sm fw-bold px-3 py-1.5 shadow-xs">
+                    <i class="bi bi-chat-dots-fill me-1"></i> Live Chat Support
+                </button>
             </div>
         </div>
     </div>

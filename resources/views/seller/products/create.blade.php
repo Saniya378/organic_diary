@@ -18,11 +18,11 @@
         </ol>
     </nav>
 
-    <div class="alert alert-info border-0 rounded-4 shadow-sm mb-4">
+    <div class="alert alert-success border-0 rounded-4 shadow-sm mb-4 bg-success-subtle text-success-emphasis">
         <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
             <div>
-                <strong>Catalog Review Notice:</strong> All newly added products will have a status of <em>Pending</em> until verified by the marketplace admin for authentic organic origin.
+                <strong>Instant Publishing:</strong> Your farm account is approved. Any product you add here will go live immediately on the store.
             </div>
         </div>
     </div>
@@ -151,6 +151,31 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="shelf_life_days" class="form-label fw-semibold small">
+                            <i class="bi bi-hourglass-split text-gold me-1"></i> Shelf Life (Days)
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control @error('shelf_life_days') is-invalid @enderror" id="shelf_life_days" name="shelf_life_days" min="1" max="1000" placeholder="e.g. 3 (Milk), 7 (Dahi), 180 (Ghee)" value="{{ old('shelf_life_days') }}">
+                            <span class="input-group-text">Days</span>
+                        </div>
+                        <small class="text-muted text-2xs">e.g., Fresh Milk: 3d • Yogurt: 7d • Paneer: 5d • Desi Ghee: 365d</small>
+                        @error('shelf_life_days')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="expires_at" class="form-label fw-semibold small">
+                            <i class="bi bi-calendar-check text-success me-1"></i> Calculated Batch Expiry
+                        </label>
+                        <input type="date" class="form-control form-control-sm @error('expires_at') is-invalid @enderror" id="expires_at" name="expires_at" value="{{ old('expires_at') }}">
+                        <small class="text-muted text-2xs" id="expiryHelperText">Auto-calculated from Milking Date + Shelf Life.</small>
+                        @error('expires_at')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="form-check form-switch mt-3">
                         <input class="form-check-input" type="checkbox" id="is_organic" name="is_organic" value="1" {{ old('is_organic', true) ? 'checked' : '' }}>
                         <label class="form-check-label fw-semibold text-dark" for="is_organic">
@@ -260,6 +285,34 @@
             }
         }
     }
+
+    // Auto calculate Expiry Date when produced_on or shelf_life_days changes
+    function recalculateExpiryDate() {
+        const producedOnInput = document.getElementById('produced_on');
+        const shelfLifeInput = document.getElementById('shelf_life_days');
+        const expiresAtInput = document.getElementById('expires_at');
+        const helper = document.getElementById('expiryHelperText');
+
+        if (producedOnInput && shelfLifeInput && expiresAtInput) {
+            const producedVal = producedOnInput.value;
+            const days = parseInt(shelfLifeInput.value, 10);
+
+            if (producedVal && !isNaN(days) && days > 0) {
+                const pDate = new Date(producedVal);
+                pDate.setDate(pDate.getDate() + days);
+                const yyyy = pDate.getFullYear();
+                const mm = String(pDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(pDate.getDate()).padStart(2, '0');
+                expiresAtInput.value = `${yyyy}-${mm}-${dd}`;
+                if (helper) {
+                    helper.innerHTML = `<span class="text-success fw-semibold"><i class="bi bi-check-circle"></i> Batch valid for ${days} days until ${dd}/${mm}/${yyyy}.</span>`;
+                }
+            }
+        }
+    }
+
+    document.getElementById('produced_on')?.addEventListener('change', recalculateExpiryDate);
+    document.getElementById('shelf_life_days')?.addEventListener('input', recalculateExpiryDate);
 </script>
 @endpush
 @endsection

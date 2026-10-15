@@ -6,7 +6,9 @@ use App\Models\Address;
 use App\Models\SellerProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthAndProfileTest extends TestCase
@@ -40,7 +42,11 @@ class AuthAndProfileTest extends TestCase
             'password_confirmation' => 'Pass12345',
         ]);
 
-        $response->assertRedirect('/');
+        $response->assertRedirect('/register/verify-otp');
+        $otp = \App\Models\EmailOtp::where('email', $email)->where('type', 'registration')->latest()->first();
+        $this->assertNotNull($otp);
+        $verifyResponse = $this->post('/register/verify-otp', ['otp' => $otp->otp]);
+        $verifyResponse->assertRedirect('/');
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
             'email' => $email,
@@ -50,6 +56,7 @@ class AuthAndProfileTest extends TestCase
 
     public function test_seller_registration_creates_pending_profile_and_redirects_to_seller_dashboard(): void
     {
+        Storage::fake('public');
         $email = 'seller_' . uniqid() . '@organicdairy.test';
         $response = $this->post('/register', [
             'name' => 'Ghizer New Farm',
@@ -59,11 +66,18 @@ class AuthAndProfileTest extends TestCase
             'farm_name' => 'Ghizer Pastures Dairy',
             'location' => 'Gahkuch, Ghizer',
             'description' => 'Organic family dairy farm in Ghizer.',
+            'cnic_no' => '71101-1234567-1',
+            'cnic_front' => UploadedFile::fake()->create('cnic_front.jpg', 200, 'image/jpeg'),
+            'cnic_back' => UploadedFile::fake()->create('cnic_back.jpg', 200, 'image/jpeg'),
             'password' => 'Pass12345',
             'password_confirmation' => 'Pass12345',
         ]);
 
-        $response->assertRedirect(route('seller.dashboard'));
+        $response->assertRedirect('/register/verify-otp');
+        $otp = \App\Models\EmailOtp::where('email', $email)->where('type', 'registration')->latest()->first();
+        $this->assertNotNull($otp);
+        $verifyResponse = $this->post('/register/verify-otp', ['otp' => $otp->otp]);
+        $verifyResponse->assertRedirect(route('seller.dashboard'));
         $this->assertAuthenticated();
         $user = User::where('email', $email)->first();
         $this->assertNotNull($user);

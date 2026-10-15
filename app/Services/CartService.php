@@ -205,8 +205,8 @@ class CartService
         $unitPrice = $cartItem->unit_price;
         $lineTotal = $unitPrice * $quantity;
         $subtotal = $this->getCartSubtotal($cart);
-        $deliveryFee = (int) Setting::get('delivery_fee', 150);
-        $grandTotal = $subtotal + ($subtotal > 0 ? $deliveryFee : 0);
+        $deliveryFee = $this->calculateTotalDeliveryFee($cart);
+        $grandTotal = $subtotal > 0 ? ($subtotal + $deliveryFee) : 0;
 
         return [
             'success' => true,
@@ -217,12 +217,11 @@ class CartService
             'unit_price' => $unitPrice,
             'formatted_unit_price' => 'Rs ' . number_format($unitPrice),
             'line_total' => $lineTotal,
-            'formatted_line_total' => 'Rs ' . number_format($lineTotal),
             'cart_count' => $this->getCartCount($cart),
             'subtotal' => $subtotal,
             'formatted_subtotal' => 'Rs ' . number_format($subtotal),
             'delivery_fee' => $deliveryFee,
-            'formatted_delivery_fee' => 'Rs ' . number_format($deliveryFee),
+            'formatted_delivery_fee' => $deliveryFee === 0 ? 'FREE' : 'Rs ' . number_format($deliveryFee),
             'grand_total' => $grandTotal,
             'formatted_grand_total' => 'Rs ' . number_format($grandTotal),
         ];
@@ -241,8 +240,8 @@ class CartService
         }
 
         $subtotal = $this->getCartSubtotal($cart);
-        $deliveryFee = (int) Setting::get('delivery_fee', 150);
-        $grandTotal = $subtotal > 0 ? $subtotal + $deliveryFee : 0;
+        $deliveryFee = $this->calculateTotalDeliveryFee($cart);
+        $grandTotal = $subtotal > 0 ? ($subtotal + $deliveryFee) : 0;
         $cartCount = $this->getCartCount($cart);
 
         return [
@@ -252,11 +251,52 @@ class CartService
             'subtotal' => $subtotal,
             'formatted_subtotal' => 'Rs ' . number_format($subtotal),
             'delivery_fee' => $deliveryFee,
-            'formatted_delivery_fee' => 'Rs ' . number_format($deliveryFee),
+            'formatted_delivery_fee' => $deliveryFee === 0 ? 'FREE' : 'Rs ' . number_format($deliveryFee),
             'grand_total' => $grandTotal,
             'formatted_grand_total' => 'Rs ' . number_format($grandTotal),
             'is_empty' => $cartCount === 0,
         ];
+    }
+
+    /**
+     * Calculate dynamic per-seller delivery total for active cart items.
+     */
+    public function calculateTotalDeliveryFee(?Cart $cart = null): int
+    {
+        $cart = $cart ?: $this->getOrCreateCart();
+        $items = CartItem::where('cart_id', $cart->id)
+            ->with(['product.seller.sellerProfile'])
+            ->get();
+
+        $sellerSubtotals = [];
+        $defaultFlatDeliveryFee = (int) Setting::get('delivery_fee', 150);
+
+        foreach ($items as $item) {
+            if (!$item->product || $item->product->status !== 'approved') {
+                continue;
+            }
+            $sellerId = $item->product->seller_id;
+            if (!isset($sellerSubtotals[$sellerId])) {
+                $sellerSubtotals[$sellerId] = [
+                    'seller' => $item->product->seller,
+                    'subtotal' => 0,
+                ];
+            }
+            $sellerSubtotals[$sellerId]['subtotal'] += $item->line_total;
+        }
+
+        if (empty($sellerSubtotals)) {
+            return 0;
+        }
+
+        $totalFee = 0;
+        foreach ($sellerSubtotals as $sellerId => $data) {
+            $profile = $data['seller']?->sellerProfile;
+            $fee = $profile ? $profile->calculateDeliveryFee($data['subtotal']) : $defaultFlatDeliveryFee;
+            $totalFee += $fee;
+        }
+
+        return $totalFee;
     }
 
     /**
@@ -283,7 +323,7 @@ class CartService
             return $item->line_total;
         });
 
-        $deliveryFee = (int) Setting::get('delivery_fee', 150);
+        $deliveryFee = $this->calculateTotalDeliveryFee($cart);
         $grandTotal = $subtotal > 0 ? ($subtotal + $deliveryFee) : 0;
 
         return [
@@ -293,7 +333,7 @@ class CartService
             'subtotal' => $subtotal,
             'formatted_subtotal' => 'Rs ' . number_format($subtotal),
             'delivery_fee' => $deliveryFee,
-            'formatted_delivery_fee' => 'Rs ' . number_format($deliveryFee),
+            'formatted_delivery_fee' => $deliveryFee === 0 ? 'FREE' : 'Rs ' . number_format($deliveryFee),
             'grand_total' => $grandTotal,
             'formatted_grand_total' => 'Rs ' . number_format($grandTotal),
             'is_empty' => $validItems->isEmpty(),

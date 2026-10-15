@@ -42,21 +42,38 @@ class CheckoutController extends Controller
         }
 
         // Group items by seller
+        // Group items by seller and compute dynamic delivery fee per seller
         $sellerGroups = [];
         $subtotal = 0;
+        $totalDeliveryFee = 0;
+        $defaultFlatDeliveryFee = (int) Setting::get('delivery_fee', 150);
+
         foreach ($cartItems as $item) {
             if (!$item->product || $item->product->status !== 'approved') {
                 continue;
             }
             $sellerId = $item->product->seller_id;
-            $sellerGroups[$sellerId]['seller'] = $item->product->seller;
+            if (!isset($sellerGroups[$sellerId])) {
+                $sellerGroups[$sellerId] = [
+                    'seller' => $item->product->seller,
+                    'items' => [],
+                    'subtotal' => 0,
+                    'delivery_fee' => 0,
+                ];
+            }
             $sellerGroups[$sellerId]['items'][] = $item;
+            $sellerGroups[$sellerId]['subtotal'] += $item->line_total;
             $subtotal += $item->line_total;
         }
 
-        $flatDeliveryFee = (int) Setting::get('delivery_fee', 150);
+        foreach ($sellerGroups as $sellerId => &$group) {
+            $profile = $group['seller']?->sellerProfile;
+            $group['delivery_fee'] = $profile ? $profile->calculateDeliveryFee($group['subtotal']) : $defaultFlatDeliveryFee;
+            $totalDeliveryFee += $group['delivery_fee'];
+        }
+        unset($group);
+
         $distinctSellersCount = count($sellerGroups);
-        $totalDeliveryFee = $flatDeliveryFee * max(1, $distinctSellersCount);
         $discount = 0;
         $grandTotal = $subtotal + $totalDeliveryFee - $discount;
 
@@ -75,7 +92,7 @@ class CheckoutController extends Controller
             'cartItems' => $cartItems,
             'sellerGroups' => $sellerGroups,
             'subtotal' => $subtotal,
-            'flatDeliveryFee' => $flatDeliveryFee,
+            'flatDeliveryFee' => $defaultFlatDeliveryFee,
             'distinctSellersCount' => $distinctSellersCount,
             'totalDeliveryFee' => $totalDeliveryFee,
             'discount' => $discount,
@@ -99,6 +116,7 @@ class CheckoutController extends Controller
             'shipping_city' => $request->input('shipping_city'),
             'shipping_area' => $request->input('shipping_area'),
             'shipping_address_line' => $request->input('shipping_address_line'),
+            'delivery_slot' => $request->input('delivery_slot', 'morning'),
             'save_address' => $request->boolean('save_address'),
         ];
 
@@ -118,6 +136,10 @@ class CheckoutController extends Controller
         if ($paymentMethod === 'cod') {
             return redirect()->route('checkout.success', $orderGroup->group_no)
                 ->with('success', 'Thank you! Your order has been placed successfully via Cash on Delivery.');
+        }
+
+        if ($paymentMethod === 'card') {
+            return redirect()->route('checkout.payment.mock', $orderGroup->id);
         }
 
         // Real-Time Bank / Mobile Wallet Transfer Payment
@@ -141,24 +163,38 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.success', $orderGroup->group_no);
         }
 
-        // Bank and Mobile Wallet Account Settings
+        $primaryOrder = $orderGroup->orders->first();
+        $primarySeller = $primaryOrder?->seller;
+        $sellerProfile = $primarySeller?->sellerProfile;
+        $sellerFarmName = $sellerProfile?->farm_name ?? ($primarySeller?->name ?? 'Farm Producer');
+
+        // Direct payment to seller accounts, falling back to platform settings if seller has not configured them
+        $hasSellerAccounts = (bool) ($sellerProfile && ($sellerProfile->easypaisa_number || $sellerProfile->jazzcash_number || $sellerProfile->bank_account_number));
+
         $bankDetails = [
-            'bank_name' => Setting::get('bank_name', 'Meezan Bank Ltd'),
-            'bank_account_title' => Setting::get('bank_account_title', 'Organic Dairy Gilgit-Baltistan'),
-            'bank_account_number' => Setting::get('bank_account_number', '01020304050607'),
-            'bank_iban' => Setting::get('bank_iban', 'PK36MEZN0001020304050607'),
-            'bank_branch' => Setting::get('bank_branch', 'Gilgit City Branch'),
-            'easypaisa_title' => Setting::get('easypaisa_title', 'Organic Dairy Gilgit'),
-            'easypaisa_number' => Setting::get('easypaisa_number', '0345-1234567'),
-            'jazzcash_title' => Setting::get('jazzcash_title', 'Organic Dairy Gilgit'),
-            'jazzcash_number' => Setting::get('jazzcash_number', '0300-7654321'),
-            'payment_instructions' => Setting::get('payment_instructions', 'Please transfer the exact order amount to any of our official accounts listed below. Once transferred, enter your Transaction ID (TRX ID) and submit proof. The admin will verify and approve your order immediately.'),
+            'seller_name' => $sellerFarmName,
+            'is_seller_direct' => $hasSellerAccounts,
+            'has_bank' => (bool) ($sellerProfile?->bank_account_number ?: Setting::get('bank_account_number')),
+            'has_easypaisa' => (bool) ($sellerProfile?->easypaisa_number ?: Setting::get('easypaisa_number')),
+            'has_jazzcash' => (bool) ($sellerProfile?->jazzcash_number ?: Setting::get('jazzcash_number')),
+            'bank_name' => $sellerProfile?->bank_name ?: Setting::get('bank_name', 'Meezan Bank Ltd'),
+            'bank_account_title' => $sellerProfile?->bank_account_title ?: Setting::get('bank_account_title', 'Organic Dairy Gilgit-Baltistan'),
+            'bank_account_number' => $sellerProfile?->bank_account_number ?: Setting::get('bank_account_number', '01020304050607'),
+            'bank_iban' => $sellerProfile?->bank_iban ?: Setting::get('bank_iban', 'PK36MEZN0001020304050607'),
+            'bank_branch' => $sellerProfile?->bank_branch ?: Setting::get('bank_branch', 'Gilgit City Branch'),
+            'easypaisa_title' => $sellerProfile?->easypaisa_title ?: Setting::get('easypaisa_title', 'Organic Dairy Gilgit'),
+            'easypaisa_number' => $sellerProfile?->easypaisa_number ?: Setting::get('easypaisa_number', '0345-1234567'),
+            'jazzcash_title' => $sellerProfile?->jazzcash_title ?: Setting::get('jazzcash_title', 'Organic Dairy Gilgit'),
+            'jazzcash_number' => $sellerProfile?->jazzcash_number ?: Setting::get('jazzcash_number', '0300-7654321'),
+            'payment_instructions' => $sellerProfile?->payment_instructions ?: Setting::get('payment_instructions', 'Please transfer the exact order amount directly to the seller accounts listed below. Once transferred, enter your Transaction ID (TRX ID) and submit proof. The seller will verify and dispatch your fresh dairy.'),
         ];
 
         return view('checkout.payment', [
             'orderGroup' => $orderGroup,
             'payment' => $orderGroup->payment,
             'bankDetails' => $bankDetails,
+            'primarySeller' => $primarySeller,
+            'sellerProfile' => $sellerProfile,
         ]);
     }
 
@@ -205,7 +241,7 @@ class CheckoutController extends Controller
             'admin_notes' => null, // Reset previous rejection note on resubmit
         ]);
 
-        // Update all orders in group
+        // Update all orders in group & notify sellers
         foreach ($orderGroup->orders as $order) {
             $order->update([
                 'payment_status' => 'under_review',
@@ -214,13 +250,24 @@ class CheckoutController extends Controller
             \App\Models\OrderStatusHistory::create([
                 'order_id' => $order->id,
                 'status' => $order->status,
-                'note' => 'Buyer submitted payment proof via ' . ucfirst(str_replace('_', ' ', $request->input('payment_channel'))) . ' (TRX ID: ' . $request->input('transaction_id') . '). Status: Under Admin Review.',
+                'note' => 'Buyer submitted payment proof via ' . ucfirst(str_replace('_', ' ', $request->input('payment_channel'))) . ' (TRX ID: ' . $request->input('transaction_id') . '). Awaiting seller verification.',
                 'changed_by' => Auth::id(),
             ]);
+
+            try {
+                \App\Models\Notification::sendTo(
+                    $order->seller_id,
+                    "Payment Receipt Submitted for Order #{$order->order_no}",
+                    "Buyer submitted payment proof (TRX: {$request->input('transaction_id')}). Please verify the receipt and confirm the order.",
+                    route('seller.orders.show', $order->id),
+                    'payment_under_review',
+                    'bi-credit-card-2-front-fill'
+                );
+            } catch (\Exception $e) {}
         }
 
         return redirect()->route('checkout.success', $orderGroup->group_no)
-            ->with('success', 'Thank you! Your payment details (TRX ID: ' . $request->input('transaction_id') . ') have been submitted. Our team is reviewing your transaction.');
+            ->with('success', 'Thank you! Your payment details (TRX ID: ' . $request->input('transaction_id') . ') have been sent to the farm. The seller will verify your receipt and prepare your order.');
     }
 
     /**

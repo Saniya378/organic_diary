@@ -49,22 +49,22 @@
     </nav>
 
     <!-- Top Order Number Lookup Card (Navbar destination & quick search) -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-dark-green text-white p-4 p-md-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 text-white p-4 p-md-4" style="background: linear-gradient(135deg, #1F3A27 0%, #14261a 100%);">
         <div class="row align-items-center g-3">
             <div class="col-lg-6">
                 <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="bi bi-geo-alt-fill text-gold fs-4"></i>
+                    <i class="bi bi-geo-alt-fill text-warning fs-4"></i>
                     <h3 class="mb-0 font-serif text-white fw-bold">Live Order Tracker</h3>
                 </div>
-                <p class="text-white-50 small mb-0">Enter your Himalayan dairy order number (e.g. <code>OD-20500</code>) to track real-time cold-chain dispatch.</p>
+                <p class="text-white-50 small mb-0">Enter your Himalayan dairy order number (e.g. <span class="badge bg-white bg-opacity-25 text-white font-monospace">OD-20500</span>) to track real-time cold-chain dispatch.</p>
             </div>
             <div class="col-lg-6">
                 <form action="{{ route('track-order.form') }}" method="GET" class="d-flex gap-2">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="order_no" class="form-control border-0 py-2 font-monospace" placeholder="Enter Order # (e.g. OD-20500)" value="{{ $searchedOrderNo ?? ($order->order_no ?? '') }}" required>
-                        <button type="submit" class="btn btn-gold text-dark fw-bold px-4">
-                            Track
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="bi bi-search"></i></span>
+                        <input type="text" name="order_no" class="form-control border-0 py-2.5 font-monospace text-dark" placeholder="Enter Order # (e.g. OD-20500)" value="{{ $searchedOrderNo ?? ($order->order_no ?? '') }}" required>
+                        <button type="submit" class="btn btn-warning text-dark fw-bold px-4">
+                            <i class="bi bi-truck me-1"></i> Track
                         </button>
                     </div>
                 </form>
@@ -160,7 +160,7 @@
                                         </div>
                                         <div>
                                             <h6 class="fw-bold text-dark mb-0">Payment Verification Under Review</h6>
-                                            <small class="text-muted">Transaction ID: <span class="font-monospace fw-semibold text-dark">{{ $trackPayment->transaction_id ?? $trackPayment->gateway_ref }}</span> &bull; Awaiting Admin Confirmation.</small>
+                                            <small class="text-muted">Transaction ID: <span class="font-monospace fw-semibold text-dark">{{ $trackPayment->transaction_id ?? $trackPayment->gateway_ref }}</span> &bull; Awaiting Farm/Seller Confirmation.</small>
                                         </div>
                                     </div>
                                     <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill text-xs fw-bold">Under Review</span>
@@ -224,6 +224,62 @@
                                     </div>
                                 </div>
                             @endif
+                        <!-- Live Route Corridor (Origin -> Transit -> Destination) -->
+                        <div class="card border-0 shadow-xs rounded-4 p-3.5 mb-4" style="background: linear-gradient(135deg, #FAF7F0 0%, #F5F0E6 100%); border: 1px solid #ECE6D6 !important;">
+                            <div class="row align-items-center g-3">
+                                <!-- Origin (Farm Valley) -->
+                                <div class="col-md-5">
+                                    <div class="d-flex align-items-start gap-2.5">
+                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center p-2 shadow-2xs" style="width: 38px; height: 38px; min-width: 38px;">
+                                            <i class="bi bi-geo-alt-fill fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill text-xs px-2 py-0.5 mb-1">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i> Origin (Dispatched From)
+                                            </span>
+                                            <h6 class="fw-bold text-dark font-serif mb-0" id="routeOriginFarm">{{ $order->seller?->sellerProfile?->farm_name ?? $order->seller?->name ?? 'Valley Farm' }}</h6>
+                                            <small class="text-muted d-block" id="routeOriginLoc"><i class="bi bi-geo me-1"></i> {{ $order->seller?->sellerProfile?->location ?? 'Gilgit-Baltistan' }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Middle: Moving Status Indicator -->
+                                <div class="col-md-2 text-center py-2 py-md-0">
+                                    <div class="d-inline-flex flex-column align-items-center">
+                                        <div class="rounded-pill px-3 py-1 text-xs fw-bold shadow-2xs {{ $order->status === 'in_transit' ? 'bg-primary text-white' : ($order->status === 'delivered' ? 'bg-success text-white' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle') }}" id="routeTransitBadge">
+                                            @if($order->status === 'in_transit')
+                                                <i class="bi bi-truck me-1"></i> En Route
+                                            @elseif($order->status === 'delivered')
+                                                <i class="bi bi-check2-circle me-1"></i> Arrived
+                                            @elseif($order->status === 'cancelled')
+                                                <i class="bi bi-x-circle me-1"></i> Cancelled
+                                            @else
+                                                <i class="bi bi-clock-history me-1"></i> Processing
+                                            @endif
+                                        </div>
+                                        <div class="w-100 my-1 position-relative" style="height: 2px; background: #D5CDBC; min-width: 70px;">
+                                            <i class="bi bi-chevron-right position-absolute top-50 start-50 translate-middle text-muted" style="font-size: 10px;"></i>
+                                        </div>
+                                        <small class="text-xs text-muted" id="routeTransitStatusLabel">Cold-Chain</small>
+                                    </div>
+                                </div>
+
+                                <!-- Destination (Customer Doorstep) -->
+                                <div class="col-md-5">
+                                    <div class="d-flex align-items-start gap-2.5 justify-content-md-end text-md-end">
+                                        <div class="order-md-1 order-2">
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill text-xs px-2 py-0.5 mb-1">
+                                                <i class="bi bi-house-door-fill me-1"></i> Destination (Doorstep)
+                                            </span>
+                                            <h6 class="fw-bold text-dark font-serif mb-0" id="routeDestCity">{{ $order->orderGroup?->shipping_city ?? 'Gilgit' }}</h6>
+                                            <small class="text-muted d-block text-truncate-2" id="routeDestAddress"><i class="bi bi-pin-map me-1"></i> {{ $order->orderGroup?->shipping_address_line ?? 'Customer Address' }}</small>
+                                        </div>
+                                        <div class="order-md-2 order-1 rounded-circle bg-primary text-white d-flex align-items-center justify-content-center p-2 shadow-2xs" style="width: 38px; height: 38px; min-width: 38px;">
+                                            <i class="bi bi-house-door-fill fs-5"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Vertical Timeline -->
@@ -322,7 +378,7 @@
                         <div class="d-grid gap-2" id="cancelActionContainer">
                             @if($canCancel)
                                 <button type="button" class="btn btn-outline-danger rounded-pill py-2 fw-semibold" data-bs-toggle="modal" data-bs-target="#cancelTrackModal" id="btnOpenCancelModal">
-                                    <i class="bi bi-x-circle me-1"></i> Cancel Order &amp; Restore Stock
+                                    <i class="bi bi-x-circle me-1"></i> Cancel Order & Restore Stock
                                 </button>
 
                                 <!-- Cancel Modal -->
@@ -453,23 +509,13 @@
                     </div>
                 </div>
 
-                <!-- WhatsApp Live Delivery Help Card -->
-                @php
-                    $trackWaPhone = $order->seller->phone ?? \App\Models\Setting::get('whatsapp_number', \App\Models\Setting::get('contact_phone', '03555123456'));
-                    $cleanTrackPhone = preg_replace('/[^0-9]/', '', $trackWaPhone);
-                    if (str_starts_with($cleanTrackPhone, '0')) {
-                        $cleanTrackPhone = '92' . substr($cleanTrackPhone, 1);
-                    } elseif (!str_starts_with($cleanTrackPhone, '92') && strlen($cleanTrackPhone) === 10) {
-                        $cleanTrackPhone = '92' . $cleanTrackPhone;
-                    }
-                    $trackMsg = rawurlencode("Hello! I am tracking Order #{$order->order_no} ({$order->seller->sellerProfile->farm_name ?? 'Organic Dairy GB'}). Could you please provide dispatch/delivery assistance?");
-                @endphp
+                <!-- Live Delivery Help Card -->
                 <div class="card border-0 shadow-sm rounded-4 text-center p-3 mb-4" style="background: #F4FBF6; border: 1px solid #D2EED9 !important;">
-                    <div class="small fw-bold text-dark mb-1"><i class="bi bi-whatsapp text-success me-1"></i> Delivery Support on WhatsApp</div>
-                    <div class="text-xs text-muted mb-2">Need courier or rider ETA update? Chat directly with support.</div>
-                    <a href="https://wa.me/{{ $cleanTrackPhone }}?text={{ $trackMsg }}" target="_blank" rel="noopener noreferrer" class="btn btn-success rounded-pill btn-sm fw-bold px-3 py-1.5 shadow-xs">
-                        <i class="bi bi-whatsapp me-1"></i> WhatsApp Helpline
-                    </a>
+                    <div class="small fw-bold text-dark mb-1"><i class="bi bi-headset text-success me-1"></i> Live Delivery Assistance</div>
+                    <div class="text-xs text-muted mb-2">Need rider ETA or direct dispatch help? Chat live with support.</div>
+                    <button type="button" onclick="window.openSupportChat('Track Order #{{ $order->order_no }}')" class="btn btn-success rounded-pill btn-sm fw-bold px-3 py-1.5 shadow-xs">
+                        <i class="bi bi-chat-dots-fill me-1"></i> Live Chat Support
+                    </button>
                 </div>
 
             </div>
@@ -513,6 +559,24 @@
             if (badge) {
                 badge.innerText = data.status_label;
                 badge.className = `badge ${badgeClassMap[data.status] || 'bg-light text-dark'} px-3 py-2 rounded-pill fs-6 fw-bold`;
+            }
+
+            // 1b. Update Route Corridor Transit Badge
+            const transitBadge = document.getElementById('routeTransitBadge');
+            if (transitBadge) {
+                if (data.status === 'in_transit') {
+                    transitBadge.className = 'rounded-pill px-3 py-1 text-xs fw-bold shadow-2xs bg-primary text-white';
+                    transitBadge.innerHTML = '<i class="bi bi-truck me-1"></i> En Route';
+                } else if (data.status === 'delivered') {
+                    transitBadge.className = 'rounded-pill px-3 py-1 text-xs fw-bold shadow-2xs bg-success text-white';
+                    transitBadge.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Arrived';
+                } else if (data.is_cancelled) {
+                    transitBadge.className = 'rounded-pill px-3 py-1 text-xs fw-bold shadow-2xs bg-danger text-white';
+                    transitBadge.innerHTML = '<i class="bi bi-x-circle me-1"></i> Cancelled';
+                } else {
+                    transitBadge.className = 'rounded-pill px-3 py-1 text-xs fw-bold shadow-2xs bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+                    transitBadge.innerHTML = '<i class="bi bi-clock-history me-1"></i> ' + (data.status_label || 'Processing');
+                }
             }
 
             // 2. Update Payment text

@@ -32,7 +32,8 @@ class PublicPagesTest extends TestCase
         $response = $this->get('/shop');
         $response->assertStatus(200);
         $response->assertSee('Filters');
-        $response->assertSee('Fresh Cow Milk 1 Litre');
+        $firstApproved = Product::approved()->latest('produced_on')->latest('created_at')->first();
+        $response->assertSee($firstApproved->name);
 
         // Verify pending products are NOT visible in the shop catalog
         $response->assertDontSee('Astore Highland Raw Butter');

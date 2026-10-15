@@ -10,9 +10,9 @@
     <div class="container-fluid p-0 min-vh-100 d-flex flex-column">
         <div class="row g-0 flex-grow-1">
             <!-- Left Green Brand Hero Panel -->
-            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-between p-5 text-white position-relative" style="background: linear-gradient(135deg, rgba(31, 58, 39, 0.92) 0%, rgba(21, 39, 26, 0.96) 100%), url('{{ asset('images/banners/auth_bg.jpg') }}') center/cover no-repeat; border-right: 4px solid var(--od-gold);">
-                <div>
-                    <a href="{{ url('/') }}" class="text-decoration-none d-flex align-items-center gap-2 mb-4">
+            <div class="col-lg-5 d-none d-lg-flex flex-column justify-content-between p-5 text-white position-relative" style="background: linear-gradient(135deg, rgba(31, 58, 39, 0.92) 0%, rgba(21, 39, 26, 0.96) 100%), url('{{ asset('images/banners/auth_bg.jpg') }}') center/cover no-repeat; border-right: 4px solid var(--od-gold); position: sticky; top: 0; height: 100vh; overflow-y: auto;">
+                <div class="d-flex flex-column gap-3">
+                    <a href="{{ url('/') }}" class="text-decoration-none d-flex align-items-center gap-2 mb-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center text-dark" style="width: 48px; height: 48px; background-color: var(--od-gold);">
                             <i class="bi bi-flower1 fs-3"></i>
                         </div>
@@ -21,30 +21,30 @@
                             <small class="text-warning text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 2px;">Gilgit-Baltistan</small>
                         </div>
                     </a>
-                </div>
 
-                <div class="my-auto py-5">
-                    <span class="badge bg-white bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-2 mb-3">
-                        <i class="bi bi-people-fill me-1"></i> Join Our Mountain Network
-                    </span>
-                    <h1 class="display-6 heading-serif text-white fw-bold mb-3">
-                        Join as a Dairy Enthusiast or Certified Farmer.
-                    </h1>
-                    <p class="text-white-50 lead fs-6 mb-4">
-                        Buy raw grass-fed dairy straight from local shepherds, or register your high-altitude farm in Hunza, Skardu, or Ghizer to sell directly to consumers.
-                    </p>
+                    <div>
+                        <span class="badge bg-white bg-opacity-10 text-warning border border-warning border-opacity-50 rounded-pill px-3 py-2 mb-3">
+                            <i class="bi bi-people-fill me-1"></i> Join Our Mountain Network
+                        </span>
+                        <h1 class="display-6 heading-serif text-white fw-bold mb-3">
+                            Join as a Dairy Enthusiast or Certified Farmer.
+                        </h1>
+                        <p class="text-white-50 lead fs-6 mb-4">
+                            Buy raw grass-fed dairy straight from local shepherds, or register your high-altitude farm in Hunza, Skardu, or Ghizer to sell directly to consumers.
+                        </p>
 
-                    <div class="card bg-white bg-opacity-10 border-0 text-white p-3 rounded-4 mb-3">
-                        <div class="d-flex align-items-center gap-2 fw-bold text-warning mb-1">
-                            <i class="bi bi-info-circle-fill"></i> For Farm Sellers
+                        <div class="card bg-white bg-opacity-10 border-0 text-white p-3 rounded-4 mb-3">
+                            <div class="d-flex align-items-center gap-2 fw-bold text-warning mb-1">
+                                <i class="bi bi-info-circle-fill"></i> For Farm Sellers
+                            </div>
+                            <small class="text-white-70">
+                                Seller accounts are manually verified by our team to maintain strict organic grass-fed standards. Once approved, you can publish unlimited fresh batches and receive online payments.
+                            </small>
                         </div>
-                        <small class="text-white-70">
-                            Seller accounts are manually verified by our team to maintain strict organic grass-fed standards. Once approved, you can publish unlimited fresh batches and receive online payments.
-                        </small>
                     </div>
                 </div>
 
-                <div class="small text-white-50 pt-4 border-top border-white border-opacity-10 d-flex justify-content-between">
+                <div class="small text-white-50 pt-4 border-top border-white border-opacity-10 d-flex justify-content-between mt-4">
                     <span>&copy; {{ date('Y') }} Organic Dairy Marketplace</span>
                     <a href="{{ url('/') }}" class="text-warning text-decoration-none">Back to Store &rarr;</a>
                 </div>
@@ -163,11 +163,94 @@
                                     @error('description') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                                 </div>
 
-                                <div>
+                                <div class="mb-3">
                                     <label for="photo" class="form-label small fw-bold text-dark">Farm / Logo Photo (Optional)</label>
                                     <input type="file" name="photo" id="photo" class="form-control bg-white @error('photo') is-invalid @enderror" accept="image/*">
                                     <small class="text-muted" style="font-size: 0.72rem;">Accepts JPG, PNG, WEBP up to 2MB.</small>
                                     @error('photo') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                </div>
+
+                                <!-- CNIC Identity Verification Box -->
+                                <div class="p-3 mt-3 rounded-3 bg-white border" style="border-left: 4px solid #1F3A27 !important;">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-person-vcard-fill text-success fs-5"></i>
+                                            <span class="fw-bold text-dark small">Government CNIC Identity Verification</span>
+                                        </div>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">Mandatory for Approval</span>
+                                    </div>
+                                    <p class="text-muted small mb-3" style="font-size: 0.78rem;">
+                                        Admin manually checks and verifies your real Pakistani CNIC before granting farm selling privileges to ensure marketplace authenticity.
+                                    </p>
+
+                                    <!-- CNIC Number -->
+                                    <div class="mb-3">
+                                        <label for="cnic_no" class="form-label small fw-bold text-dark">
+                                            CNIC Number (شناختی کارڈ نمبر) <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-card-heading"></i></span>
+                                            <input type="text" name="cnic_no" id="cnic_no" value="{{ old('cnic_no') }}" maxlength="15" class="form-control bg-white border-start-0 font-monospace @error('cnic_no') is-invalid @enderror" placeholder="71101-1234567-1">
+                                        </div>
+                                        <small class="text-muted" style="font-size: 0.72rem;">Enter 13-digit CNIC without or with dashes (Format: 71101-1234567-1).</small>
+                                        @error('cnic_no') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                    </div>
+
+                                    <!-- CNIC Front and Back Upload Cards -->
+                                    <div class="row g-2">
+                                        <!-- CNIC Front Side -->
+                                        <div class="col-md-6">
+                                            <div class="border rounded-3 p-2.5 bg-light h-100 position-relative">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <label for="cnic_front" class="form-label small fw-bold text-dark mb-0">
+                                                        CNIC Front Side <span class="text-danger">*</span>
+                                                    </label>
+                                                    <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;">Front (سامنے)</span>
+                                                </div>
+                                                <small class="text-muted d-block mb-2" style="font-size: 0.7rem;">Clear photo showing your face & CNIC number.</small>
+                                                
+                                                <input type="file" name="cnic_front" id="cnic_front" class="form-control form-control-sm bg-white @error('cnic_front') is-invalid @enderror" accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf" onchange="previewCnic(this, 'cnicFrontPreview', 'cnicFrontPreviewBox')">
+                                                
+                                                <!-- Preview Container -->
+                                                <div id="cnicFrontPreviewBox" class="mt-2 text-center rounded border bg-white p-2 d-none" style="max-height: 120px; overflow: hidden;">
+                                                    <img id="cnicFrontPreview" src="" alt="CNIC Front Preview" class="img-fluid rounded" style="max-height: 100px; object-fit: contain;">
+                                                    <div id="cnicFrontPdfNotice" class="d-none small text-danger py-2">
+                                                        <i class="bi bi-file-earmark-pdf-fill fs-3 text-danger d-block mb-1"></i>
+                                                        <span class="fw-semibold">PDF Document Selected</span>
+                                                    </div>
+                                                </div>
+                                                @error('cnic_front') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
+
+                                        <!-- CNIC Back Side -->
+                                        <div class="col-md-6">
+                                            <div class="border rounded-3 p-2.5 bg-light h-100 position-relative">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <label for="cnic_back" class="form-label small fw-bold text-dark mb-0">
+                                                        CNIC Back Side <span class="text-danger">*</span>
+                                                    </label>
+                                                    <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;">Back (پیچھے)</span>
+                                                </div>
+                                                <small class="text-muted d-block mb-2" style="font-size: 0.7rem;">Clear photo showing address & family number.</small>
+                                                
+                                                <input type="file" name="cnic_back" id="cnic_back" class="form-control form-control-sm bg-white @error('cnic_back') is-invalid @enderror" accept="image/jpeg,image/png,image/jpg,image/webp,application/pdf" onchange="previewCnic(this, 'cnicBackPreview', 'cnicBackPreviewBox')">
+                                                
+                                                <!-- Preview Container -->
+                                                <div id="cnicBackPreviewBox" class="mt-2 text-center rounded border bg-white p-2 d-none" style="max-height: 120px; overflow: hidden;">
+                                                    <img id="cnicBackPreview" src="" alt="CNIC Back Preview" class="img-fluid rounded" style="max-height: 100px; object-fit: contain;">
+                                                    <div id="cnicBackPdfNotice" class="d-none small text-danger py-2">
+                                                        <i class="bi bi-file-earmark-pdf-fill fs-3 text-danger d-block mb-1"></i>
+                                                        <span class="fw-semibold">PDF Document Selected</span>
+                                                    </div>
+                                                </div>
+                                                @error('cnic_back') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-muted mt-2" style="font-size: 0.7rem;">
+                                        <i class="bi bi-shield-check text-success me-1"></i> Formats: JPG, PNG, WebP, PDF &bull; Max 5MB per file &bull; Kept private & only visible to Admin.
+                                    </div>
                                 </div>
                             </div>
 
@@ -219,20 +302,99 @@
             const sellerBtn = document.getElementById('roleBtnSeller');
             const sellerFields = document.getElementById('sellerFieldsSection');
 
+            const farmNameInput = document.getElementById('farm_name');
+            const locationSelect = document.getElementById('location');
+            const cnicNoInput = document.getElementById('cnic_no');
+            const cnicFrontInput = document.getElementById('cnic_front');
+            const cnicBackInput = document.getElementById('cnic_back');
+
             if (role === 'seller') {
                 sellerBtn.className = 'btn btn-sm px-4 py-2 rounded-pill btn-primary';
                 buyerBtn.className = 'btn btn-sm px-4 py-2 rounded-pill text-dark';
                 buyerBtn.style.background = 'transparent';
                 sellerFields.style.display = 'block';
+
+                if (farmNameInput) farmNameInput.required = true;
+                if (locationSelect) locationSelect.required = true;
+                if (cnicNoInput) cnicNoInput.required = true;
+                if (cnicFrontInput) cnicFrontInput.required = true;
+                if (cnicBackInput) cnicBackInput.required = true;
             } else {
                 buyerBtn.className = 'btn btn-sm px-4 py-2 rounded-pill btn-primary';
                 sellerBtn.className = 'btn btn-sm px-4 py-2 rounded-pill text-dark';
                 sellerBtn.style.background = 'transparent';
                 sellerFields.style.display = 'none';
+
+                if (farmNameInput) farmNameInput.required = false;
+                if (locationSelect) locationSelect.required = false;
+                if (cnicNoInput) cnicNoInput.required = false;
+                if (cnicFrontInput) cnicFrontInput.required = false;
+                if (cnicBackInput) cnicBackInput.required = false;
+            }
+        }
+
+        function previewCnic(input, previewImgId, containerId) {
+            const container = document.getElementById(containerId);
+            const img = document.getElementById(previewImgId);
+            const pdfNoticeId = previewImgId.replace('Preview', 'PdfNotice');
+            const pdfNotice = document.getElementById(pdfNoticeId);
+
+            if (!container || !img) return;
+
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                container.classList.remove('d-none');
+
+                if (file.type === 'application/pdf') {
+                    img.classList.add('d-none');
+                    if (pdfNotice) {
+                        pdfNotice.classList.remove('d-none');
+                        pdfNotice.querySelector('.fw-semibold').textContent = file.name;
+                    }
+                } else if (file.type.startsWith('image/')) {
+                    if (pdfNotice) pdfNotice.classList.add('d-none');
+                    img.classList.remove('d-none');
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            } else {
+                container.classList.add('d-none');
+                img.src = '';
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize role state based on old value or default
+            const initialRole = document.getElementById('roleInput').value || 'buyer';
+            setRole(initialRole);
+
+            // CNIC Auto-Formatting (XXXXX-XXXXXXX-X)
+            const cnicInput = document.getElementById('cnic_no');
+            if (cnicInput) {
+                cnicInput.addEventListener('input', function() {
+                    let digits = this.value.replace(/\D/g, ''); // strip non-digits
+                    if (digits.length > 13) {
+                        digits = digits.substring(0, 13);
+                    }
+                    let formatted = '';
+                    if (digits.length > 5) {
+                        formatted += digits.substring(0, 5) + '-';
+                        if (digits.length > 12) {
+                            formatted += digits.substring(5, 12) + '-' + digits.substring(12, 13);
+                        } else {
+                            formatted += digits.substring(5);
+                        }
+                    } else {
+                        formatted = digits;
+                    }
+                    this.value = formatted;
+                });
+            }
+
+            // Password Show/Hide Toggle
             document.querySelectorAll('.toggle-password').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const targetId = this.getAttribute('data-target');

@@ -28,7 +28,9 @@ class ProductController extends Controller
         $statusFilter = $request->query('status');
 
         $query = Product::where('seller_id', $sellerId)
-            ->with(['category', 'variants', 'images'])
+            ->with(['category', 'variants', 'images', 'reviews.user'])
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->latest();
 
         if ($statusFilter && in_array($statusFilter, ['approved', 'pending', 'rejected', 'inactive'])) {
@@ -100,9 +102,11 @@ class ProductController extends Controller
                 'stock' => $validated['stock'],
                 'batch_no' => $validated['batch_no'] ?? null,
                 'produced_on' => $validated['produced_on'] ?? null,
+                'shelf_life_days' => $validated['shelf_life_days'] ?? null,
+                'expires_at' => $validated['expires_at'] ?? null,
                 'is_organic' => $request->boolean('is_organic'),
                 'deals_enabled' => $request->boolean('deals_enabled'),
-                'status' => 'pending', // New products are pending review
+                'status' => 'pending', // Requires admin approval
             ]);
 
             // Save Variants
@@ -138,7 +142,7 @@ class ProductController extends Controller
         });
 
         return redirect()->route('seller.products.index')
-            ->with('success', "Product '{$product->name}' was created successfully and submitted for admin review (Status: Pending).");
+            ->with('success', "Product '{$product->name}' was created and published successfully to the shop catalog.");
     }
 
     /**
@@ -182,9 +186,11 @@ class ProductController extends Controller
                 'stock' => $validated['stock'],
                 'batch_no' => $validated['batch_no'] ?? null,
                 'produced_on' => $validated['produced_on'] ?? null,
+                'shelf_life_days' => $validated['shelf_life_days'] ?? null,
+                'expires_at' => $validated['expires_at'] ?? null,
                 'is_organic' => $request->boolean('is_organic'),
                 'deals_enabled' => $request->boolean('deals_enabled'),
-                'status' => 'pending', // Edited products become pending
+                'status' => 'pending', // Reverts to pending review upon edits
             ]);
 
             // Sync Variants
@@ -220,7 +226,7 @@ class ProductController extends Controller
         });
 
         return redirect()->route('seller.products.index')
-            ->with('success', "Product '{$product->name}' was updated and re-submitted for admin review (Status: Pending).");
+            ->with('success', "Product '{$product->name}' was updated successfully.");
     }
 
     /**

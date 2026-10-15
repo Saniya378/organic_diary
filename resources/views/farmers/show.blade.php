@@ -62,19 +62,9 @@
                         <strong class="text-white">{{ $farmer->user->name }}</strong>
                     </div>
 
-                    @php
-                        $farmerWaPhone = $farmer->user->phone ?? \App\Models\Setting::get('whatsapp_number', \App\Models\Setting::get('contact_phone', '03555123456'));
-                        $cleanFarmerPhone = preg_replace('/[^0-9]/', '', $farmerWaPhone);
-                        if (str_starts_with($cleanFarmerPhone, '0')) {
-                            $cleanFarmerPhone = '92' . substr($cleanFarmerPhone, 1);
-                        } elseif (!str_starts_with($cleanFarmerPhone, '92') && strlen($cleanFarmerPhone) === 10) {
-                            $cleanFarmerPhone = '92' . $cleanFarmerPhone;
-                        }
-                        $farmerMsg = rawurlencode("Hello {$farmer->farm_name}! I found your farm profile on Organic Dairy GB and would like to ask about your dairy harvest.");
-                    @endphp
-                    <a href="https://wa.me/{{ $cleanFarmerPhone }}?text={{ $farmerMsg }}" target="_blank" rel="noopener noreferrer" class="btn btn-light rounded-pill w-100 btn-sm py-2 fw-bold text-success d-flex align-items-center justify-content-center gap-1.5 shadow-sm">
-                        <i class="bi bi-whatsapp fs-5 text-success"></i> Chat with Farmer
-                    </a>
+                    <button type="button" onclick="window.openSupportChat('Tell me about farm {{ addslashes($farmer->farm_name) }} in {{ addslashes($farmer->valley ?? 'Gilgit-Baltistan') }}')" class="btn btn-light rounded-pill w-100 btn-sm py-2 fw-bold text-dark d-flex align-items-center justify-content-center gap-1.5 shadow-sm">
+                        <i class="bi bi-chat-dots-fill fs-5 text-warning"></i> Ask Support About This Farm
+                    </button>
                 </div>
             </div>
         </div>
@@ -96,7 +86,7 @@
                         <div>
                             <div class="rounded-3 mb-3 d-flex align-items-center justify-content-center" style="height: 180px; background: linear-gradient(135deg, #F5F1E8 0%, #E8E2D2 100%);">
                                 @if($product->primary_image)
-                                    <img src="{{ asset('storage/' . $product->primary_image) }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover rounded-3">
+                                    <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover rounded-3" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                                 @else
                                     <div class="text-center text-muted">
                                         <div class="rounded-circle d-inline-flex p-3 bg-white shadow-sm mb-1 text-success">

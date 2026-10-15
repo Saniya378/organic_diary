@@ -24,7 +24,13 @@
             <div class="d-none d-md-flex align-items-center gap-3">
                 <span><i class="bi bi-shield-check text-warning me-1"></i> 100% Certified Organic & Fresh</span>
                 <span class="text-white-50">|</span>
-                <a href="{{ route('track-order.form') }}" class="text-white text-decoration-none hover-gold"><i class="bi bi-truck me-1"></i> Track Order</a>
+                @if(!Auth::check() || Auth::user()->isBuyer())
+                    <a href="{{ route('track-order.form') }}" class="text-white text-decoration-none hover-gold"><i class="bi bi-truck me-1"></i> Track Order</a>
+                @elseif(Auth::user()->isSeller())
+                    <a href="{{ route('seller.orders.index') }}" class="text-white text-decoration-none hover-gold"><i class="bi bi-cart-check me-1"></i> Farm Orders</a>
+                @elseif(Auth::user()->isAdmin())
+                    <a href="{{ route('admin.dashboard') }}" class="text-white text-decoration-none hover-gold"><i class="bi bi-speedometer2 me-1"></i> Admin Portal</a>
+                @endif
             </div>
         </div>
     </div>
@@ -75,9 +81,19 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->is('farmers*') ? 'active text-success fw-bold' : '' }}" href="{{ route('farmers.index') }}">Farmers</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->is('track-order*') ? 'active text-success fw-bold' : '' }}" href="{{ route('track-order.form') }}">Track Order</a>
-                    </li>
+                    @if(!Auth::check() || Auth::user()->isBuyer())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('track-order*') ? 'active text-success fw-bold' : '' }}" href="{{ route('track-order.form') }}">Track Order</a>
+                        </li>
+                    @elseif(Auth::user()->isSeller())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('seller/orders*') ? 'active text-success fw-bold' : '' }}" href="{{ route('seller.orders.index') }}">Farm Orders</a>
+                        </li>
+                    @elseif(Auth::user()->isAdmin())
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->is('admin/orders*') ? 'active text-success fw-bold' : '' }}" href="{{ route('admin.orders.index') }}">All Orders</a>
+                        </li>
+                    @endif
                     <li class="nav-item">
                         <a class="nav-link {{ request()->is('about*') ? 'active text-success fw-bold' : '' }}" href="{{ route('about') }}">About</a>
                     </li>
@@ -121,14 +137,23 @@
                                 </li>
                                 @if(Auth::user()->isAdmin())
                                     <li><a class="dropdown-item py-2 fw-semibold" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2 text-danger me-2"></i> Admin Panel</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.orders.index') }}"><i class="bi bi-cart-check text-success me-2"></i> All Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.sellers.index') }}"><i class="bi bi-person-check text-primary me-2"></i> Approve Sellers</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('admin.products.index') }}"><i class="bi bi-patch-check text-warning me-2"></i> Approve Products</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('notifications.index') }}"><i class="bi bi-bell text-warning me-2"></i> Notifications</a></li>
                                 @elseif(Auth::user()->isSeller())
                                     <li><a class="dropdown-item py-2 fw-semibold" href="{{ route('seller.dashboard') }}"><i class="bi bi-shop text-warning me-2"></i> Seller Dashboard</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('seller.orders.index') }}"><i class="bi bi-cart-check text-success me-2"></i> Farm Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('seller.products.index') }}"><i class="bi bi-box-seam text-primary me-2"></i> My Products</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('seller.profile.edit') }}"><i class="bi bi-person-gear text-secondary me-2"></i> Farm Profile</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('notifications.index') }}"><i class="bi bi-bell text-warning me-2"></i> Notifications</a></li>
+                                @else
+                                    <li><a class="dropdown-item py-2" href="{{ route('profile.edit') }}"><i class="bi bi-person text-success me-2"></i> My Profile</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('addresses.index') }}"><i class="bi bi-geo-alt text-primary me-2"></i> Address Book</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('orders.index') }}"><i class="bi bi-box-seam text-info me-2"></i> My Orders</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('buyer.deals.index') }}"><i class="bi bi-calendar2-check text-warning me-2"></i> My Deals / Subscriptions</a></li>
+                                    <li><a class="dropdown-item py-2" href="{{ route('notifications.index') }}"><i class="bi bi-bell text-warning me-2"></i> Notifications</a></li>
                                 @endif
-                                <li><a class="dropdown-item py-2" href="{{ route('profile.edit') }}"><i class="bi bi-person text-success me-2"></i> My Profile</a></li>
-                                <li><a class="dropdown-item py-2" href="{{ route('addresses.index') }}"><i class="bi bi-geo-alt text-primary me-2"></i> Address Book</a></li>
-                                <li><a class="dropdown-item py-2" href="{{ route('orders.index') }}"><i class="bi bi-box-seam text-info me-2"></i> My Orders</a></li>
-                                <li><a class="dropdown-item py-2" href="{{ route('notifications.index') }}"><i class="bi bi-bell text-warning me-2"></i> Notifications</a></li>
-                                <li><a class="dropdown-item py-2" href="{{ route('buyer.deals.index') }}"><i class="bi bi-calendar2-check text-warning me-2"></i> My Deals / Subscriptions</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST">
@@ -258,8 +283,8 @@
                         <div><i class="bi bi-envelope text-warning me-2"></i> salam@organicdairy.test</div>
                         <div><i class="bi bi-telephone text-warning me-2"></i> +92 5811 455000 (Gilgit Hub)</div>
                         <div>
-                            <a href="https://wa.me/923555123456?text={{ rawurlencode('Hello Organic Dairy GB! I would like to inquire about fresh mountain dairy products and orders.') }}" target="_blank" rel="noopener noreferrer" class="text-white text-decoration-none hover-gold d-inline-flex align-items-center">
-                                <i class="bi bi-whatsapp text-success me-2 fs-6"></i> +92 355 5123456 (WhatsApp Orders)
+                            <a href="javascript:void(0)" onclick="window.openSupportChat('Hello! I would like some assistance with organic dairy products.')" class="text-white text-decoration-none hover-gold d-inline-flex align-items-center">
+                                <i class="bi bi-chat-dots-fill text-warning me-2 fs-6"></i> Live Support Chat (24/7 AI &amp; Team)
                             </a>
                         </div>
                     </div>
@@ -411,7 +436,7 @@
     </script>
 
     @include('partials.live-search')
-    @include('partials.whatsapp-widget')
+    @include('partials.chatbot-widget')
 
     @stack('scripts')
 </body>

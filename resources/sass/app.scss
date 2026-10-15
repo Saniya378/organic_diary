@@ -59,11 +59,13 @@ h1, h2, h3, h4, h5, h6, .heading-serif, .font-serif {
     color: var(--od-muted) !important;
 }
 
-.text-darkgreen {
+.text-darkgreen,
+.text-dark-green {
     color: var(--od-dark-green) !important;
 }
 
-.bg-darkgreen {
+.bg-darkgreen,
+.bg-dark-green {
     background-color: var(--od-dark-green) !important;
     color: #FFFFFF !important;
 }

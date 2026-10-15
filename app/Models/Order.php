@@ -24,6 +24,7 @@ class Order extends Model
         'payment_status',
         'rider_name',
         'rider_phone',
+        'delivery_slot',
         'cancel_reason',
     ];
 

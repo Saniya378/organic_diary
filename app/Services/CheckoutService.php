@@ -170,17 +170,42 @@ class CheckoutService
                 );
             }
 
-            // 4. Calculations: Subtotal, Delivery Fee (per seller), Commission
-            $flatDeliveryFee = (int) Setting::get('delivery_fee', 150);
+            // 4. Calculations: Subtotal, Delivery Fee (per seller), Commission, City & Min Order Checks
+            $defaultFlatDeliveryFee = (int) Setting::get('delivery_fee', 150);
             $commissionPercent = (float) Setting::get('commission_percent', 5);
 
             $groupSubtotal = 0;
             $groupDeliveryTotal = 0;
+            $sellerFeeMap = [];
 
             foreach ($sellerGroupedItems as $sellerId => $items) {
+                $sellerUser = User::with('sellerProfile')->find($sellerId);
+                $profile = $sellerUser?->sellerProfile;
+                $farmTitle = $profile?->farm_name ?? ($sellerUser?->name ?? "Seller #{$sellerId}");
+
+                // Check Serviceable City
+                if ($profile && !$profile->isCityServiceable($deliveryData['shipping_city'])) {
+                    $citiesList = !empty($profile->serviceable_cities) ? implode(', ', $profile->serviceable_cities) : 'their local region';
+                    throw ValidationException::withMessages([
+                        'shipping_city' => "Farm '{$farmTitle}' only provides direct delivery to: {$citiesList}. Please select a supported city or remove their items."
+                    ]);
+                }
+
                 $sellerSubtotal = array_sum(array_column($items, 'line_total'));
+
+                // Check Minimum Order Amount
+                if ($profile && $profile->min_order_amount && $sellerSubtotal < $profile->min_order_amount) {
+                    throw ValidationException::withMessages([
+                        'cart' => "Minimum basket order amount for '{$farmTitle}' is Rs " . number_format($profile->min_order_amount) . " (Current: Rs " . number_format($sellerSubtotal) . ")."
+                    ]);
+                }
+
+                // Dynamic Delivery Fee based on seller settings and free delivery threshold
+                $sellerFee = $profile ? $profile->calculateDeliveryFee($sellerSubtotal) : $defaultFlatDeliveryFee;
+                $sellerFeeMap[$sellerId] = $sellerFee;
+
                 $groupSubtotal += $sellerSubtotal;
-                $groupDeliveryTotal += $flatDeliveryFee;
+                $groupDeliveryTotal += $sellerFee;
             }
 
             $discount = 0;
@@ -196,6 +221,7 @@ class CheckoutService
                 'discount' => $discount,
                 'grand_total' => $grandTotal,
                 'payment_method' => $paymentMethod,
+                'delivery_slot' => $deliveryData['delivery_slot'] ?? 'morning',
                 'shipping_full_name' => $deliveryData['shipping_full_name'],
                 'shipping_phone' => $deliveryData['shipping_phone'],
                 'shipping_city' => $deliveryData['shipping_city'],
@@ -213,8 +239,24 @@ class CheckoutService
 
             foreach ($sellerGroupedItems as $sellerId => $items) {
                 $sellerSubtotal = array_sum(array_column($items, 'line_total'));
-                $sellerCommission = (int) round(($sellerSubtotal * $commissionPercent) / 100);
-                $sellerTotal = $sellerSubtotal + $flatDeliveryFee;
+                $sellerDeliveryFee = $sellerFeeMap[$sellerId] ?? $defaultFlatDeliveryFee;
+                
+                // Calculate item-based commission according to each product's commission rate
+                $itemCommissionTotals = 0;
+                $processedItems = [];
+                foreach ($items as $itemData) {
+                    $itemCommissionRate = $itemData['product']->effective_commission_rate;
+                    $itemCommissionAmount = (int) round(($itemData['line_total'] * $itemCommissionRate) / 100);
+                    $itemCommissionTotals += $itemCommissionAmount;
+
+                    $processedItems[] = array_merge($itemData, [
+                        'commission_rate' => $itemCommissionRate,
+                        'commission_amount' => $itemCommissionAmount,
+                    ]);
+                }
+
+                $sellerCommission = $itemCommissionTotals;
+                $sellerTotal = $sellerSubtotal + $sellerDeliveryFee;
                 $orderNo = 'OD-' . $nextOrderNum++;
 
                 $order = Order::create([
@@ -223,15 +265,16 @@ class CheckoutService
                     'buyer_id' => $buyer->id,
                     'seller_id' => $sellerId,
                     'subtotal' => $sellerSubtotal,
-                    'delivery_fee' => $flatDeliveryFee,
+                    'delivery_fee' => $sellerDeliveryFee,
                     'commission' => $sellerCommission,
                     'total' => $sellerTotal,
                     'status' => $initialStatus,
                     'payment_status' => $initialPaymentStatus,
+                    'delivery_slot' => $deliveryData['delivery_slot'] ?? 'morning',
                 ]);
 
                 // Create Order Items and snap details
-                foreach ($items as $itemData) {
+                foreach ($processedItems as $itemData) {
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $itemData['product']->id,
@@ -240,6 +283,8 @@ class CheckoutService
                         'unit_price' => $itemData['unit_price'],
                         'quantity' => $itemData['quantity'],
                         'line_total' => $itemData['line_total'],
+                        'commission_rate' => $itemData['commission_rate'],
+                        'commission_amount' => $itemData['commission_amount'],
                     ]);
 
                     // If COD: reduce stock immediately with locked models

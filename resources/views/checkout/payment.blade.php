@@ -75,25 +75,79 @@
         <!-- Left Column: Official Account Numbers & Instructions -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
-                <div class="card-header bg-white py-3 border-bottom border-light d-flex justify-content-between align-items-center">
-                    <h5 class="font-serif fw-bold text-dark mb-0">
-                        <i class="bi bi-bank text-success me-2"></i> Step 1: Send Money to Official Account
-                    </h5>
-                    <span class="text-xs text-muted">Click to Copy</span>
+                <div class="card-header bg-white py-3 border-bottom border-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="font-serif fw-bold text-dark mb-0">
+                            <i class="bi bi-wallet2 text-success me-2"></i> Step 1: Transfer Money to Seller
+                        </h5>
+                        <div class="small text-muted mt-0.5">
+                            Recipient Farm: <strong class="text-dark-green">{{ $bankDetails['seller_name'] }}</strong>
+                        </div>
+                    </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-xs fw-bold">
+                        <i class="bi bi-shield-check me-1"></i> Direct to Seller
+                    </span>
                 </div>
                 <div class="card-body p-4">
                     <p class="text-muted small mb-4">
                         {{ $bankDetails['payment_instructions'] }}
                     </p>
 
-                    <!-- Account 1: Bank Account -->
+                    <!-- Account 1: Easypaisa -->
+                    @if(!empty($bankDetails['easypaisa_number']))
+                    <div class="p-3.5 rounded-4 border mb-3 bg-light transition-all hover-shadow">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-xs fw-bold">Easypaisa</span>
+                                <strong class="text-dark">{{ $bankDetails['easypaisa_title'] ?: $bankDetails['seller_name'] }}</strong>
+                            </div>
+                            <span class="text-xs text-muted">Instant Mobile Wallet</span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block text-xs">Easypaisa Mobile Number:</small>
+                            <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded-3 border">
+                                <span class="font-monospace fw-bold text-dark fs-6" id="easypaisaNo">{{ $bankDetails['easypaisa_number'] }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-0.5" onclick="copyToClipboard('{{ $bankDetails['easypaisa_number'] }}', this)">
+                                    <i class="bi bi-clipboard me-1"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Account 2: JazzCash -->
+                    @if(!empty($bankDetails['jazzcash_number']))
+                    <div class="p-3.5 rounded-4 border mb-3 bg-light transition-all hover-shadow">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 text-xs fw-bold">JazzCash</span>
+                                <strong class="text-dark">{{ $bankDetails['jazzcash_title'] ?: $bankDetails['seller_name'] }}</strong>
+                            </div>
+                            <span class="text-xs text-muted">Instant Mobile Wallet</span>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block text-xs">JazzCash Mobile Number:</small>
+                            <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded-3 border">
+                                <span class="font-monospace fw-bold text-dark fs-6" id="jazzcashNo">{{ $bankDetails['jazzcash_number'] }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-0.5" onclick="copyToClipboard('{{ $bankDetails['jazzcash_number'] }}', this)">
+                                    <i class="bi bi-clipboard me-1"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Account 3: Bank Account -->
+                    @if(!empty($bankDetails['bank_account_number']))
                     <div class="p-3.5 rounded-4 border mb-3 position-relative bg-light transition-all hover-shadow">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-success text-white px-2.5 py-1 text-xs fw-bold">Primary Bank</span>
+                                <span class="badge bg-success text-white px-2.5 py-1 text-xs fw-bold">Bank Transfer</span>
                                 <strong class="text-dark">{{ $bankDetails['bank_name'] }}</strong>
                             </div>
-                            <span class="text-xs text-muted"><i class="bi bi-geo-alt me-1"></i>{{ $bankDetails['bank_branch'] }}</span>
+                            @if(!empty($bankDetails['bank_branch']))
+                                <span class="text-xs text-muted"><i class="bi bi-geo-alt me-1"></i>{{ $bankDetails['bank_branch'] }}</span>
+                            @endif
                         </div>
 
                         <div class="mb-2">
@@ -123,44 +177,7 @@
                             </div>
                         @endif
                     </div>
-
-                    <!-- Account 2: Easypaisa -->
-                    <div class="p-3.5 rounded-4 border mb-3 bg-light transition-all hover-shadow">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 text-xs fw-bold">Easypaisa</span>
-                                <strong class="text-dark">{{ $bankDetails['easypaisa_title'] }}</strong>
-                            </div>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block text-xs">Easypaisa Mobile Number:</small>
-                            <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded-3 border">
-                                <span class="font-monospace fw-bold text-dark fs-6" id="easypaisaNo">{{ $bankDetails['easypaisa_number'] }}</span>
-                                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 py-0.5" onclick="copyToClipboard('{{ $bankDetails['easypaisa_number'] }}', this)">
-                                    <i class="bi bi-clipboard me-1"></i> Copy
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Account 3: JazzCash -->
-                    <div class="p-3.5 rounded-4 border mb-3 bg-light transition-all hover-shadow">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 text-xs fw-bold">JazzCash</span>
-                                <strong class="text-dark">{{ $bankDetails['jazzcash_title'] }}</strong>
-                            </div>
-                        </div>
-                        <div>
-                            <small class="text-muted d-block text-xs">JazzCash Mobile Number:</small>
-                            <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded-3 border">
-                                <span class="font-monospace fw-bold text-dark fs-6" id="jazzcashNo">{{ $bankDetails['jazzcash_number'] }}</span>
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-0.5" onclick="copyToClipboard('{{ $bankDetails['jazzcash_number'] }}', this)">
-                                    <i class="bi bi-clipboard me-1"></i> Copy
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    @endif
 
                     <!-- Order Summary Card -->
                     <div class="bg-white p-3 rounded-4 border mt-4">

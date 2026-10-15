@@ -31,4 +31,13 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+    ],
+
+    'chatbot' => [
+        'api_key' => env('CHATBOT_API_KEY'),
+    ],
+
 ];

@@ -21,7 +21,7 @@
             <div class="card p-3 shadow-sm border-0 mb-3">
                 <div class="rounded-4 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 380px; background: linear-gradient(135deg, #F5F1E8 0%, #E8E2D2 100%);">
                     @if($product->images->isNotEmpty())
-                        <img id="mainProductImage" src="{{ asset('storage/' . $product->images->first()->path) }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
+                        <img id="mainProductImage" src="{{ $product->images->first()->url }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                     @else
                         <div class="text-center text-muted">
                             <div class="rounded-circle d-inline-flex p-4 bg-white shadow-sm mb-2 text-success">
@@ -42,8 +42,8 @@
             @if($product->images->count() > 1)
                 <div class="d-flex gap-2">
                     @foreach($product->images as $img)
-                        <div class="card p-1 shadow-sm border-0 cursor-pointer thumbnail-card" onclick="document.getElementById('mainProductImage').src='{{ asset('storage/' . $img->path) }}'" style="width: 70px; height: 70px;">
-                            <img src="{{ asset('storage/' . $img->path) }}" class="w-100 h-100 object-fit-cover rounded-2" alt="Thumbnail">
+                        <div class="card p-1 shadow-sm border-0 cursor-pointer thumbnail-card" onclick="document.getElementById('mainProductImage').src='{{ $img->url }}'" style="width: 70px; height: 70px;">
+                            <img src="{{ $img->url }}" class="w-100 h-100 object-fit-cover rounded-2" alt="Thumbnail" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                         </div>
                     @endforeach
                 </div>
@@ -136,19 +136,9 @@
                         </div>
                     </div>
 
-                    @php
-                        $productWaPhone = $product->seller->phone ?? \App\Models\Setting::get('whatsapp_number', \App\Models\Setting::get('contact_phone', '03555123456'));
-                        $cleanProdPhone = preg_replace('/[^0-9]/', '', $productWaPhone);
-                        if (str_starts_with($cleanProdPhone, '0')) {
-                            $cleanProdPhone = '92' . substr($cleanProdPhone, 1);
-                        } elseif (!str_starts_with($cleanProdPhone, '92') && strlen($cleanProdPhone) === 10) {
-                            $cleanProdPhone = '92' . $cleanProdPhone;
-                        }
-                        $prodMsg = rawurlencode("Hello! I am inquiring about {$product->name} ({$product->formatted_price}) listed by {$product->seller->sellerProfile->farm_name ?? 'your farm'} on Organic Dairy GB. Is it fresh and available today?");
-                    @endphp
-                    <a href="https://wa.me/{{ $cleanProdPhone }}?text={{ $prodMsg }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-xs">
-                        <i class="bi bi-whatsapp fs-5 text-success"></i> Chat with Farmer on WhatsApp
-                    </a>
+                    <button type="button" onclick="window.openSupportChat('Tell me about {{ addslashes($product->name) }} ({{ $product->formatted_price }})')" class="btn btn-outline-success rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-2 shadow-xs">
+                        <i class="bi bi-chat-dots-fill fs-5 text-success"></i> Ask Support About This Product
+                    </button>
                 </div>
 
                 <!-- Daily Farm Deal Banner (Only if Seller has enabled deals) -->
@@ -172,17 +162,33 @@
                 @endif
 
                 <!-- Fresh Batch & Quality Details -->
-                <div class="card p-3 rounded-4 bg-light border small text-muted d-flex flex-column gap-2 mb-4">
-                    <div class="d-flex justify-content-between">
+                <div class="card p-3.5 rounded-4 bg-light border small text-muted d-flex flex-column gap-2 mb-4">
+                    <div class="d-flex justify-content-between align-items-center">
                         <span><i class="bi bi-tag text-success me-1"></i> Batch Number:</span>
-                        <strong class="text-dark">{{ $product->batch_no ?? 'BATCH-' . $product->id . '-2026' }}</strong>
+                        <strong class="text-dark font-monospace">{{ $product->batch_no ?? 'BATCH-' . $product->id . '-2026' }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between align-items-center">
                         <span><i class="bi bi-calendar-check text-success me-1"></i> Milked / Produced On:</span>
                         <strong class="text-dark">{{ $product->produced_on ? $product->produced_on->format('d M Y') : 'Fresh Daily' }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span><i class="bi bi-truck text-success me-1"></i> Delivery Guarantee:</span>
+                    @if($product->shelf_life_days)
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-hourglass-split text-gold me-1"></i> Shelf Life:</span>
+                        <strong class="text-dark">{{ $product->shelf_life_days }} Days from Milking</strong>
+                    </div>
+                    @endif
+                    @if($product->expires_at)
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-patch-check-fill text-primary me-1"></i> Best Before / Expiry:</span>
+                        @php $freshness = $product->freshness_status; @endphp
+                        <div>
+                            <span class="text-dark fw-bold">{{ $product->expires_at->format('d M Y') }}</span>
+                            <span class="badge {{ $freshness['badge_class'] }} ms-1 text-2xs">{{ $freshness['label'] }}</span>
+                        </div>
+                    </div>
+                    @endif
+                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                        <span><i class="bi bi-snow text-info me-1"></i> Cold-Chain Dispatch:</span>
                         <span class="text-success fw-bold">Cold Packaged within 24 Hours</span>
                     </div>
                 </div>
@@ -215,7 +221,7 @@
     </div>
 
     <!-- Customer Reviews Section -->
-    <div class="card p-4 p-md-5 shadow-sm border-0 mb-5">
+    <div class="card p-4 p-md-5 shadow-sm border-0 mb-5" id="reviews-section">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <h4 class="heading-serif mb-1">Customer Reviews</h4>

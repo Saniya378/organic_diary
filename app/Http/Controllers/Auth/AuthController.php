@@ -70,8 +70,20 @@ class AuthController extends Controller
             $photoPath = $request->file('photo')->store('seller_photos', 'public');
         }
 
+        $cnicFrontPath = null;
+        if ($request->hasFile('cnic_front')) {
+            $cnicFrontPath = $request->file('cnic_front')->store('seller_cnic', 'public');
+        }
+
+        $cnicBackPath = null;
+        if ($request->hasFile('cnic_back')) {
+            $cnicBackPath = $request->file('cnic_back')->store('seller_cnic', 'public');
+        }
+
         $pendingData = array_merge($validated, [
             'photo_path' => $photoPath,
+            'cnic_front' => $cnicFrontPath,
+            'cnic_back' => $cnicBackPath,
             'guest_session_id' => Session::getId(),
         ]);
 
@@ -158,6 +170,9 @@ class AuthController extends Controller
                 'location' => $pending['location'],
                 'description' => $pending['description'] ?? null,
                 'photo_path' => $pending['photo_path'] ?? null,
+                'cnic_no' => $pending['cnic_no'] ?? null,
+                'cnic_front' => $pending['cnic_front'] ?? null,
+                'cnic_back' => $pending['cnic_back'] ?? null,
                 'status' => 'pending', // Pending approval by admin
             ]);
         }

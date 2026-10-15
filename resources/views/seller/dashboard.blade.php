@@ -235,9 +235,19 @@
                                         {{ $ord->created_at->format('M d, Y') }}
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('seller.orders.show', $ord->id) }}" class="btn btn-sm btn-outline-darkgreen rounded-pill px-3">
-                                            Manage
-                                        </a>
+                                        <div class="d-inline-flex gap-1 align-items-center">
+                                            @if(in_array($ord->status, ['placed', 'new', 'pending_payment']))
+                                                <form action="{{ route('seller.orders.confirm', $ord->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirm Order #{{ $ord->order_no }}? Customer will receive confirmation email and notification.');">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success rounded-pill px-2.5 shadow-2xs d-inline-flex align-items-center gap-1" title="Confirm Order & Notify Buyer">
+                                                        <i class="bi bi-check-circle-fill"></i> Confirm
+                                                    </button>
+                                                </form>
+                                            @endif
+                                            <a href="{{ route('seller.orders.show', $ord->id) }}" class="btn btn-sm btn-outline-darkgreen rounded-pill px-3">
+                                                Manage
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach

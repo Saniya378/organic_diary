@@ -24,6 +24,8 @@ class ProductRequest extends FormRequest
             'stock' => ['required', 'integer', 'min:0'],
             'batch_no' => ['nullable', 'string', 'max:50'],
             'produced_on' => ['nullable', 'date'],
+            'shelf_life_days' => ['nullable', 'integer', 'min:1', 'max:3650'],
+            'expires_at' => ['nullable', 'date'],
             'is_organic' => ['nullable', 'boolean'],
             'deals_enabled' => ['nullable', 'boolean'],
 

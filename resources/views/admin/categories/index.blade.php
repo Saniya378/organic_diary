@@ -39,6 +39,7 @@
                             <th class="ps-4">Category Name</th>
                             <th>Slug (URL Key)</th>
                             <th>Products Count</th>
+                            <th>Default Commission</th>
                             <th>Status</th>
                             <th>Created Date</th>
                             <th class="text-end pe-4">Actions</th>
@@ -62,6 +63,15 @@
                                     <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">
                                         {{ $category->products_count }} Products
                                     </span>
+                                </td>
+                                <td>
+                                    @if($category->commission_rate !== null)
+                                        <span class="badge bg-gold text-dark rounded-pill px-2.5 py-1 text-xs fw-bold">
+                                            {{ $category->commission_rate }}%
+                                        </span>
+                                    @else
+                                        <span class="text-muted small">Global Default</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($category->is_active)
@@ -112,6 +122,14 @@
                                                             <label class="form-label fw-semibold text-sm">Custom Slug (Optional)</label>
                                                             <input type="text" name="slug" class="form-control" value="{{ old('slug', $category->slug) }}" placeholder="e.g. fresh-cow-milk">
                                                         </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold text-sm">Default Category Commission Rate (%)</label>
+                                                            <div class="input-group">
+                                                                <input type="number" step="0.1" name="commission_rate" class="form-control" value="{{ old('commission_rate', $category->commission_rate) }}" placeholder="e.g. 5.0 (leave blank for platform default)" min="0" max="100">
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                            <div class="form-text small text-muted">Applied to all products in this category unless product has its own custom rate.</div>
+                                                        </div>
                                                         <div class="form-check form-switch mb-0">
                                                             <input class="form-check-input" type="checkbox" role="switch" id="activeEditSwitch-{{ $category->id }}" name="is_active" value="1" {{ $category->is_active ? 'checked' : '' }}>
                                                             <label class="form-check-label text-sm fw-semibold" for="activeEditSwitch-{{ $category->id }}">Active in Marketplace</label>
@@ -153,6 +171,14 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold text-sm">Slug (Optional - auto generated if empty)</label>
                             <input type="text" name="slug" class="form-control" placeholder="e.g. artisanal-cheese">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold text-sm">Default Category Commission Rate (%)</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" name="commission_rate" class="form-control" placeholder="e.g. 5.0 (leave blank for platform default)" min="0" max="100">
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text small text-muted">Applied to products in this category unless product has its own custom rate.</div>
                         </div>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="activeCreateSwitch" name="is_active" value="1" checked>

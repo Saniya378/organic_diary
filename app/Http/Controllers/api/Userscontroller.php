@@ -9,7 +9,13 @@ use App\Models\User;
 class Userscontroller extends Controller
 {
     public function index(){
-        $users =User::get();
-        return response()->Json(['ststus'=>'true','users'=>$users]);
+        $users = User::all();
+        return response()->json(['status' => 'true', 'users' => $users]);
+    }
+
+    public function getuser($id){
+       $users =User::find($id);
+        return response()->Json(['status'=>'true','users'=>$users]);
     }
 }
+

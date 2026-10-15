@@ -105,15 +105,21 @@
                                         <form action="{{ route('seller.orders.advance-status', $order->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             <input type="hidden" name="target_status" value="{{ $nextStatus }}">
-                                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
-                                                @if($nextStatus === 'confirmed')
-                                                    <i class="bi bi-check-circle me-1"></i> Confirm Batch Availability &rarr;
-                                                @elseif($nextStatus === 'packing')
-                                                    <i class="bi bi-box-seam me-1"></i> Mark as Packed in Cold-Box &rarr;
-                                                @elseif($nextStatus === 'delivered')
-                                                    <i class="bi bi-house-check me-1"></i> Mark as Delivered to Doorstep &rarr;
-                                                @endif
-                                            </button>
+                                            @if($nextStatus === 'confirmed')
+                                                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Confirm Order & Notify Buyer &rarr;
+                                                </button>
+                                            @else
+                                                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                                    @if($nextStatus === 'packing')
+                                                        <i class="bi bi-box-seam me-1"></i> Mark as Packed in Cold-Box &rarr;
+                                                    @elseif($nextStatus === 'delivered')
+                                                        <i class="bi bi-house-check me-1"></i> Mark as Delivered to Doorstep &rarr;
+                                                    @else
+                                                        {{ ucfirst(str_replace('_', ' ', $nextStatus)) }} &rarr;
+                                                    @endif
+                                                </button>
+                                            @endif
                                         </form>
                                     @endif
                                 @endif
@@ -174,6 +180,83 @@
         <!-- Right: Customer, Courier, & Payout Details -->
         <div class="col-lg-4">
             
+            <!-- Buyer Payment Verification Card (Direct Seller-Buyer Settlement) -->
+            @php
+                $payment = $order->orderGroup->payment;
+            @endphp
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border: 1px solid {{ $order->payment_status === 'under_review' ? '#F6C343' : ($order->payment_status === 'paid' ? '#D2EED9' : '#E8E2D5') }} !important;">
+                <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center {{ $order->payment_status === 'under_review' ? 'bg-warning-subtle text-warning-emphasis' : ($order->payment_status === 'paid' ? 'bg-success-subtle text-success' : 'bg-light') }}">
+                    <h6 class="mb-0 fw-bold font-serif">
+                        <i class="bi bi-credit-card-2-front me-1"></i> Buyer Payment Verification
+                    </h6>
+                    <span class="badge {{ $order->payment_status === 'paid' ? 'bg-success text-white' : ($order->payment_status === 'under_review' ? 'bg-warning text-dark' : 'bg-secondary text-white') }} rounded-pill small">
+                        {{ ucfirst(str_replace('_', ' ', $order->payment_status)) }}
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Method:</span>
+                        <strong class="text-dark text-capitalize">{{ str_replace('_', ' ', $payment->payment_channel ?? $order->orderGroup->payment_method) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Order Amount:</span>
+                        <strong class="text-dark font-serif fs-6">Rs {{ number_format($order->total) }}</strong>
+                    </div>
+
+                    @if($payment && ($payment->transaction_id || $payment->proof_image || $payment->sender_name))
+                        <hr class="my-2 opacity-25">
+                        @if($payment->transaction_id)
+                            <div class="mb-2 small">
+                                <span class="text-muted d-block">Transaction / Reference ID:</span>
+                                <code class="fw-bold fs-6 text-dark font-monospace bg-light p-1 rounded d-inline-block">{{ $payment->transaction_id }}</code>
+                            </div>
+                        @endif
+                        @if($payment->sender_name)
+                            <div class="mb-2 small">
+                                <span class="text-muted">Sender:</span>
+                                <strong class="text-dark">{{ $payment->sender_name }}</strong>
+                                @if($payment->sender_account)
+                                    <span class="text-muted">({{ $payment->sender_account }})</span>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if($payment->proof_image)
+                            <div class="mb-3">
+                                <span class="text-muted small d-block mb-1">Receipt Screenshot / Proof:</span>
+                                <a href="{{ Storage::url($payment->proof_image) }}" target="_blank" class="d-block text-center border rounded-3 p-1 bg-light text-decoration-none">
+                                    <img src="{{ Storage::url($payment->proof_image) }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 140px; object-fit: contain;">
+                                    <div class="small fw-semibold text-primary mt-1"><i class="bi bi-zoom-in me-1"></i> View Full Receipt</div>
+                                </a>
+                            </div>
+                        @endif
+                    @endif
+
+                    <!-- Action buttons for seller -->
+                    @if($order->payment_status === 'under_review' || ($order->payment_status === 'pending' && $order->orderGroup->payment_method !== 'cod'))
+                        <div class="d-grid gap-2 mt-3">
+                            <form action="{{ route('seller.orders.approve-payment', $order->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold shadow-xs py-2" onclick="return confirm('Accept and verify payment of Rs {{ number_format($order->total) }} for this order?')">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Verify &amp; Accept Payment
+                                </button>
+                            </form>
+                            <button type="button" class="btn btn-outline-danger rounded-pill w-100 btn-sm py-1.5 fw-semibold" data-bs-toggle="modal" data-bs-target="#sellerRejectPaymentModal">
+                                <i class="bi bi-x-circle me-1"></i> Reject Payment Proof
+                            </button>
+                        </div>
+                    @elseif($order->payment_status === 'paid')
+                        <div class="alert alert-success border-0 rounded-3 py-2 px-3 mb-0 small text-success-emphasis bg-success-subtle mt-2">
+                            <i class="bi bi-check-circle-fill me-1"></i> Payment verified &amp; settled with buyer.
+                        </div>
+                    @elseif($order->payment_status === 'rejected')
+                        <div class="alert alert-danger border-0 rounded-3 py-2 px-3 mb-0 small text-danger bg-danger-subtle mt-2">
+                            <i class="bi bi-x-circle-fill me-1"></i> Payment rejected. Waiting for customer re-submission.
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Financial Payout Breakdown -->
             <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
                 <div class="card-header bg-white py-3 px-4 border-bottom border-light">
@@ -189,7 +272,7 @@
                         <span class="fw-semibold">Rs {{ number_format($order->delivery_fee) }}</span>
                     </div>
                     <div class="d-flex justify-content-between small mb-2 text-danger">
-                        <span>Platform Commission (5%):</span>
+                        <span>Platform Commission:</span>
                         <span>- Rs {{ number_format($order->commission) }}</span>
                     </div>
                     <hr class="my-2 opacity-25">
@@ -209,10 +292,22 @@
 
             <!-- Customer & Delivery Address Card -->
             <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
-                <div class="card-header bg-white py-3 px-4 border-bottom border-light">
+                <div class="card-header bg-white py-3 px-4 border-bottom border-light d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold font-serif text-dark-green">
                         <i class="bi bi-geo-alt-fill text-gold me-1"></i> Customer Shipping
                     </h6>
+                    @php
+                        $slotLabels = [
+                            'morning' => ['label' => '🌅 Morning (6am-9am)', 'class' => 'bg-warning-subtle text-warning-emphasis border border-warning-subtle'],
+                            'evening' => ['label' => '🌆 Evening (5pm-8pm)', 'class' => 'bg-info-subtle text-info-emphasis border border-info-subtle'],
+                            'anytime' => ['label' => '🚚 Standard Daytime', 'class' => 'bg-light text-dark border'],
+                        ];
+                        $slot = $order->delivery_slot ?? ($order->orderGroup->delivery_slot ?? 'morning');
+                        $slotInfo = $slotLabels[$slot] ?? $slotLabels['morning'];
+                    @endphp
+                    <span class="badge {{ $slotInfo['class'] }} rounded-pill px-2.5 py-1 text-xs fw-semibold">
+                        {{ $slotInfo['label'] }}
+                    </span>
                 </div>
                 <div class="card-body p-4">
                     <strong class="text-dark d-block mb-1">{{ $order->orderGroup->shipping_full_name }}</strong>
@@ -224,6 +319,9 @@
                     </div>
                     <div class="small text-secondary mb-2">
                         {{ $order->orderGroup->shipping_address_line }}, {{ $order->orderGroup->shipping_area }}, <strong>{{ $order->orderGroup->shipping_city }}</strong>, Gilgit-Baltistan
+                    </div>
+                    <div class="p-2 bg-light rounded-3 small text-muted">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> <strong>Schedule:</strong> Please ensure dispatch reaches customer during the <strong>{{ ucfirst($slot) }} slot</strong>.
                     </div>
                 </div>
             </div>
@@ -326,4 +424,43 @@
         </div>
     </div>
 @endif
+
+<!-- Seller Reject Payment Modal -->
+<div class="modal fade" id="sellerRejectPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow text-start">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title font-serif text-danger">Reject Payment Receipt (#{{ $order->order_no }})</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('seller.orders.reject-payment', $order->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Please indicate why the customer's payment transaction was not accepted. The customer will be immediately notified to upload a valid receipt.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Rejection Reason <span class="text-danger">*</span></label>
+                        <select name="rejection_reason" class="form-select form-select-sm mb-2" onchange="if(this.value==='Other'){document.getElementById('customRejReason').style.display='block';}else{document.getElementById('customRejReason').style.display='none';}">
+                            <option value="Transaction ID not found in farm account statement">Transaction ID not found in farm account statement</option>
+                            <option value="Screenshot is blurry / illegible receipt">Screenshot is blurry / illegible receipt</option>
+                            <option value="Transferred amount does not match order total">Transferred amount does not match order total</option>
+                            <option value="Old / duplicate transaction reference">Old / duplicate transaction reference</option>
+                            <option value="Other">Other (Write specific reason)</option>
+                        </select>
+                        <div id="customRejReason" style="display: none;">
+                            <textarea name="custom_rejection_reason" class="form-control form-control-sm" rows="2" placeholder="Write specific reason..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold" onclick="const customWrap = document.getElementById('customRejReason'); if(customWrap && customWrap.style.display !== 'none'){ const customText = customWrap.querySelector('textarea').value; if(customText) { this.form.querySelector('select[name=rejection_reason]').value = customText; } }">
+                        Confirm Rejection
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'chatbot/message',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

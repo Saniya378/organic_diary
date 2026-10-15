@@ -59,7 +59,7 @@
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 position-relative overflow-hidden" style="border-left: 5px solid var(--od-primary, #2F5D3A) !important;">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Available Balance</span>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Withdrawable Balance</span>
                         <h3 class="font-serif fw-bold text-dark-green mt-1 mb-0">Rs {{ number_format($availableBalance) }}</h3>
                     </div>
                     <div class="rounded-circle p-2.5 bg-success-subtle text-success">
@@ -117,7 +117,7 @@
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100 position-relative overflow-hidden" style="border-left: 5px solid #6c757d !important;">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Lifetime Net Sales</span>
+                        <span class="text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">Lifetime Farm Profit</span>
                         <h3 class="font-serif fw-bold text-dark mt-1 mb-0">Rs {{ number_format($lifetimeEarnings) }}</h3>
                     </div>
                     <div class="rounded-circle p-2.5 bg-light text-secondary">
@@ -125,7 +125,55 @@
                     </div>
                 </div>
                 <div class="mt-3 small text-muted">
-                    <span>Delivered orders net of platform fee</span>
+                    <span>Total delivered orders (net sales)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COD vs Online Commission Settlement Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <div>
+                <h6 class="font-serif fw-bold text-dark-green mb-1">
+                    <i class="bi bi-arrow-left-right text-gold me-2"></i> Automated COD Commission Settlement Ledger
+                </h6>
+                <p class="small text-muted mb-0">
+                    When customers pay via Cash on Delivery (COD), your delivery rider collects 100% of the cash. The platform commission on COD orders is automatically offset against your online order credits.
+                </p>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 small">
+                <i class="bi bi-shield-check me-1"></i> Auto-Settled
+            </span>
+        </div>
+
+        <div class="row g-3 pt-2">
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border h-100">
+                    <div class="small text-muted fw-semibold mb-1"><i class="bi bi-credit-card me-1 text-primary"></i> Online Sales Held by Platform</div>
+                    <div class="fs-5 fw-bold text-primary">Rs {{ number_format($onlineEarningsHeld) }}</div>
+                    <div class="text-xs text-muted mt-1">Orders paid via Online Transfer / Card / Wallet (net of fee).</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border h-100">
+                    <div class="small text-muted fw-semibold mb-1"><i class="bi bi-cash-coin me-1 text-danger"></i> COD Commission Deducted</div>
+                    <div class="fs-5 fw-bold text-danger">- Rs {{ number_format($codCommissionOwed) }}</div>
+                    <div class="text-xs text-muted mt-1">Platform commission on COD orders collected directly by your riders.</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3 border h-100 {{ $outstandingDues > 0 ? 'border-danger bg-danger-subtle' : 'border-success bg-success-subtle' }}">
+                    <div class="small fw-semibold mb-1 {{ $outstandingDues > 0 ? 'text-danger' : 'text-success' }}">
+                        <i class="bi {{ $outstandingDues > 0 ? 'bi-exclamation-octagon' : 'bi-check-circle' }} me-1"></i> 
+                        {{ $outstandingDues > 0 ? 'Outstanding COD Dues' : 'Net Platform Balance' }}
+                    </div>
+                    <div class="fs-5 fw-bold {{ $outstandingDues > 0 ? 'text-danger' : 'text-success' }}">
+                        Rs {{ number_format($outstandingDues > 0 ? $outstandingDues : ($onlineEarningsHeld - $codCommissionOwed)) }}
+                    </div>
+                    <div class="text-xs text-muted mt-1">
+                        {{ $outstandingDues > 0 ? 'Pending platform commission to be offset against future online orders.' : 'Net balance ready for withdrawal.' }}
+                    </div>
                 </div>
             </div>
         </div>

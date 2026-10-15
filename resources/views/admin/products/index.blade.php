@@ -73,8 +73,9 @@
                             <th>Category</th>
                             <th>Base Price</th>
                             <th>Stock</th>
+                            <th>Commission Rate</th>
                             <th>Status</th>
-                            <th class="text-end pe-4">Catalog Approval</th>
+                            <th class="text-end pe-4">Catalog Approval & Fees</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -125,26 +126,79 @@
                                     <span class="badge bg-light text-dark border">{{ $product->stock }} units</span>
                                 </td>
                                 <td>
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <span class="badge {{ $product->commission_rate !== null ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-secondary border' }} px-2 py-1 rounded-pill">
+                                            {{ $product->effective_commission_rate }}%
+                                        </span>
+                                        @if($product->commission_rate !== null)
+                                            <span class="badge bg-gold text-dark text-2xs" title="Product-Specific Custom Commission">Custom</span>
+                                        @else
+                                            <span class="text-2xs text-muted" title="Default System Commission">(Default)</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
                                     <span class="badge {{ $badgeClass }} px-2 py-1 rounded-pill small">
                                         {{ ucfirst($product->status) }}
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="d-inline-flex gap-1">
+                                    <div class="d-inline-flex gap-1 align-items-center">
+                                        <!-- Edit Commission Button -->
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 text-xs" data-bs-toggle="modal" data-bs-target="#commissionModal_{{ $product->id }}" title="Set Product Commission Rate">
+                                            <i class="bi bi-percent me-0.5"></i> Commission
+                                        </button>
+
                                         @if($product->status !== 'approved')
                                             <form action="{{ route('admin.products.approve', $product->id) }}" method="POST">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-2" title="Approve Product">
+                                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-2 text-xs" title="Approve Product">
                                                     <i class="bi bi-check-lg"></i> Approve
                                                 </button>
                                             </form>
                                         @endif
 
                                         @if($product->status === 'pending')
-                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#rejectModal_{{ $product->id }}">
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 text-xs" data-bs-toggle="modal" data-bs-target="#rejectModal_{{ $product->id }}">
                                                 <i class="bi bi-x-lg"></i> Reject
                                             </button>
                                         @endif
+                                    </div>
+
+                                    <!-- Commission Rate Modal -->
+                                    <div class="modal fade" id="commissionModal_{{ $product->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content rounded-4 border-0 shadow">
+                                                <div class="modal-header border-bottom">
+                                                    <h5 class="modal-title font-serif text-dark-green">
+                                                        <i class="bi bi-percent text-gold me-1"></i> Set Admin Commission
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form action="{{ route('admin.products.commission', $product->id) }}" method="POST">
+                                                    @csrf
+                                                    <div class="modal-body text-start">
+                                                        <p class="small text-muted mb-3">
+                                                            Configure the percentage commission the platform earns whenever buyers purchase <strong>{{ $product->name }}</strong> from <strong>{{ $product->seller->sellerProfile->farm_name ?? $product->seller->name }}</strong>.
+                                                        </p>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-semibold">Commission Percentage (%)</label>
+                                                            <div class="input-group">
+                                                                <input type="number" step="0.1" name="commission_rate" class="form-control" placeholder="e.g. 7.5 (leave empty for platform default)" value="{{ $product->commission_rate }}" min="0" max="100">
+                                                                <span class="input-group-text">%</span>
+                                                            </div>
+                                                            <div class="form-text small text-muted">
+                                                                Current Effective Rate: <strong>{{ $product->effective_commission_rate }}%</strong>. Leave blank to use category/platform default rate.
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-top bg-light">
+                                                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold">Save Commission</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Reject Product Modal -->

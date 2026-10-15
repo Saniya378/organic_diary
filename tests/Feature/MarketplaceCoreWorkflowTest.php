@@ -170,7 +170,7 @@ class MarketplaceCoreWorkflowTest extends TestCase
      */
     public function test_registration_and_role_redirects(): void
     {
-        // Buyer Registration -> Redirects to intended / home
+        // Buyer Registration -> Redirects to OTP verification then intended / home
         $buyerEmail = 'reg_buyer_' . uniqid() . '@organicdairy.test';
         $buyerResponse = $this->post(route('register.post'), [
             'name' => 'New Buyer',
@@ -180,13 +180,18 @@ class MarketplaceCoreWorkflowTest extends TestCase
             'password' => 'Buyer@12345',
             'password_confirmation' => 'Buyer@12345',
         ]);
-        $buyerResponse->assertRedirect(url('/'));
+        $buyerResponse->assertRedirect('/register/verify-otp');
+        $buyerOtp = \App\Models\EmailOtp::where('email', $buyerEmail)->where('type', 'registration')->latest()->first();
+        $this->assertNotNull($buyerOtp);
+        $buyerVerify = $this->post('/register/verify-otp', ['otp' => $buyerOtp->otp]);
+        $buyerVerify->assertRedirect(url('/'));
         $this->assertDatabaseHas('users', ['email' => $buyerEmail, 'role' => 'buyer']);
 
         // Log out before testing next registration
         $this->post(route('logout'));
 
         // Seller Registration -> Creates pending seller profile and redirects to seller dashboard with banner
+        Storage::fake('public');
         $sellerEmail = 'reg_seller_' . uniqid() . '@organicdairy.test';
         $sellerResponse = $this->post(route('register.post'), [
             'name' => 'New Seller',
@@ -196,10 +201,17 @@ class MarketplaceCoreWorkflowTest extends TestCase
             'farm_name' => 'Highland Valley Farm',
             'location' => 'Ghizer',
             'description' => 'Organic family farm',
+            'cnic_no' => '71101-1234567-1',
+            'cnic_front' => UploadedFile::fake()->create('cnic_front.jpg', 200, 'image/jpeg'),
+            'cnic_back' => UploadedFile::fake()->create('cnic_back.jpg', 200, 'image/jpeg'),
             'password' => 'Seller@12345',
             'password_confirmation' => 'Seller@12345',
         ]);
-        $sellerResponse->assertRedirect(route('seller.dashboard'));
+        $sellerResponse->assertRedirect('/register/verify-otp');
+        $sellerOtp = \App\Models\EmailOtp::where('email', $sellerEmail)->where('type', 'registration')->latest()->first();
+        $this->assertNotNull($sellerOtp);
+        $sellerVerify = $this->post('/register/verify-otp', ['otp' => $sellerOtp->otp]);
+        $sellerVerify->assertRedirect(route('seller.dashboard'));
         $this->assertDatabaseHas('seller_profiles', ['farm_name' => 'Highland Valley Farm', 'status' => 'pending']);
 
         // Log out before login tests

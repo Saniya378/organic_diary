@@ -20,6 +20,7 @@ class OrderGroup extends Model
         'discount',
         'grand_total',
         'payment_method',
+        'delivery_slot',
         'shipping_full_name',
         'shipping_phone',
         'shipping_city',

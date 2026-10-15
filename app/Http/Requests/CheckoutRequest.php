@@ -27,6 +27,7 @@ class CheckoutRequest extends FormRequest
             'shipping_city' => ['required', 'string', Rule::in($allowedCities)],
             'shipping_area' => ['required', 'string', 'max:255'],
             'shipping_address_line' => ['required', 'string', 'max:500'],
+            'delivery_slot' => ['nullable', 'string', Rule::in(['morning', 'evening', 'anytime'])],
             'save_address' => ['nullable', 'boolean'],
             'payment_method' => ['required', 'string', Rule::in(['cod', 'bank_transfer', 'wallet', 'card'])],
 

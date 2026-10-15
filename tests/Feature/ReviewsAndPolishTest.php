@@ -180,25 +180,17 @@ class ReviewsAndPolishTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('status');
 
-        Mail::assertSent(ResetPasswordMail::class, function ($mail) {
+        Mail::assertSent(\App\Mail\PasswordResetOtpMail::class, function ($mail) {
             return $mail->hasTo($this->buyer->email);
         });
 
-        // Verify token in DB
-        $tokenRow = DB::table('password_reset_tokens')->where('email', $this->buyer->email)->first();
-        $this->assertNotNull($tokenRow);
+        // 2. Perform reset via OTP
+        $otpModel = \App\Models\EmailOtp::where('email', $this->buyer->email)->where('type', 'forgot_password')->latest()->first();
+        $this->assertNotNull($otpModel);
 
-        // 2. Perform reset
-        // Since token in DB is hashed, create a known raw token
-        $rawToken = 'sample_secure_token_1234567890';
-        DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $this->buyer->email],
-            ['token' => Hash::make($rawToken), 'created_at' => now()]
-        );
-
-        $resetResponse = $this->post(route('password.update'), [
-            'token' => $rawToken,
+        $resetResponse = $this->post(route('password.update.otp'), [
             'email' => $this->buyer->email,
+            'otp' => $otpModel->otp,
             'password' => 'NewPassword@2026',
             'password_confirmation' => 'NewPassword@2026',
         ]);

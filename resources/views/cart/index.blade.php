@@ -49,7 +49,7 @@
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="rounded-3 d-flex align-items-center justify-content-center bg-light border flex-shrink-0" style="width: 60px; height: 60px; overflow: hidden;">
                                                         @if($product->primary_image)
-                                                            <img src="{{ asset('storage/' . $product->primary_image) }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
+                                                            <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                                                         @else
                                                             <i class="bi bi-egg-fried fs-4 text-success"></i>
                                                         @endif

@@ -122,6 +122,14 @@
                                 </td>
                                 <td class="text-end pe-4">
                                     <div class="d-inline-flex gap-1 align-items-center">
+                                        @if(in_array($order->status, ['placed', 'new', 'pending_payment']))
+                                            <form action="{{ route('seller.orders.confirm', $order->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to confirm Order #{{ $order->order_no }}? Customer will receive confirmation email and notification.');">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-2.5 shadow-2xs d-inline-flex align-items-center gap-1" title="Confirm Order & Notify Buyer">
+                                                    <i class="bi bi-check-circle-fill"></i> Confirm
+                                                </button>
+                                            </form>
+                                        @endif
                                         <a href="{{ route('seller.orders.invoice', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2.5" title="Print Packing Slip">
                                             <i class="bi bi-printer"></i>
                                         </a>

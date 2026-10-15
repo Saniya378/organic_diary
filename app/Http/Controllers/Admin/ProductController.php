@@ -72,4 +72,22 @@ class ProductController extends Controller
 
         return back()->with('success', "Product '{$product->name}' was rejected.");
     }
+
+    /**
+     * Update product-specific platform commission percentage.
+     */
+    public function updateCommission(Request $request, Product $product): RedirectResponse
+    {
+        $request->validate([
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $product->update([
+            'commission_rate' => $request->filled('commission_rate') ? (float) $request->input('commission_rate') : null,
+        ]);
+
+        $rateDisplay = $product->commission_rate !== null ? "{$product->commission_rate}%" : "default platform rate ({$product->effective_commission_rate}%)";
+
+        return back()->with('success', "Commission rate for '{$product->name}' has been updated to {$rateDisplay}.");
+    }
 }

@@ -32,6 +32,7 @@ class SellerController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('farm_name', 'like', "%{$search}%")
                   ->orWhere('location', 'like', "%{$search}%")
+                  ->orWhere('cnic_no', 'like', "%{$search}%")
                   ->orWhereHas('user', function ($uq) use ($search) {
                       $uq->where('name', 'like', "%{$search}%")
                          ->orWhere('email', 'like', "%{$search}%")

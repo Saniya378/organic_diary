@@ -50,6 +50,7 @@ class OrderController extends Controller
             'items.variant',
             'seller.sellerProfile',
             'statusHistories.changedByUser',
+            'reviews',
         ]);
 
         $canCancel = in_array($order->status, ['placed', 'new', 'confirmed']);
@@ -158,6 +159,9 @@ class OrderController extends Controller
             'cancelled_by_text' => $cancelledByText,
             'cancel_reason' => $order->cancel_reason,
             'farm_name' => $farmName,
+            'farm_location' => $order->seller?->sellerProfile?->location ?? 'Gilgit-Baltistan',
+            'shipping_city' => $order->orderGroup?->shipping_city ?? 'Gilgit',
+            'shipping_address' => $order->orderGroup?->shipping_address_line ?? '',
             'rider_name' => $order->rider_name,
             'rider_phone' => $order->rider_phone,
             'can_cancel' => in_array($order->status, ['placed', 'new', 'confirmed']),
@@ -228,12 +232,29 @@ class OrderController extends Controller
             OrderStatusHistory::create([
                 'order_id' => $o->id,
                 'status' => $o->status,
-                'note' => 'Buyer re-submitted payment proof via ' . ucfirst(str_replace('_', ' ', $request->input('payment_channel'))) . ' (TRX ID: ' . $request->input('transaction_id') . '). Status: Under Admin Review.',
+                'note' => 'Buyer re-submitted payment proof via ' . ucfirst(str_replace('_', ' ', $request->input('payment_channel'))) . ' (TRX ID: ' . $request->input('transaction_id') . '). Awaiting seller verification.',
                 'changed_by' => Auth::id(),
             ]);
+
+            // Notify Seller directly
+            if ($o->seller_id) {
+                \App\Models\Notification::create([
+                    'user_id' => $o->seller_id,
+                    'title' => 'Payment Proof Re-submitted',
+                    'message' => 'Buyer re-submitted payment proof for Order #' . $o->order_no . ' (TRX ID: ' . $request->input('transaction_id') . '). Please verify.',
+                    'type' => 'payment_submitted',
+                    'data' => [
+                        'order_id' => $o->id,
+                        'order_no' => $o->order_no,
+                        'payment_channel' => $request->input('payment_channel'),
+                        'transaction_id' => $request->input('transaction_id'),
+                        'amount' => $o->total_amount,
+                    ],
+                ]);
+            }
         }
 
-        return back()->with('success', 'Payment proof (TRX ID: ' . $request->input('transaction_id') . ') re-submitted successfully. Admin will verify shortly.');
+        return back()->with('success', 'Payment proof (TRX ID: ' . $request->input('transaction_id') . ') re-submitted successfully. The seller/farm will verify shortly.');
     }
 
     /**

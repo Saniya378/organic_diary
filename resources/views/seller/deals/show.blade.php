@@ -101,7 +101,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="rounded-3 overflow-hidden border bg-light" style="width: 50px; height: 50px; min-width: 50px;">
                         @if($deal->product->primary_image)
-                            <img src="{{ asset('storage/' . $deal->product->primary_image) }}" alt="Product" class="w-100 h-100 object-fit-cover">
+                            <img src="{{ $deal->product->primary_image_url }}" alt="Product" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                         @else
                             <i class="bi bi-egg-fried fs-4 text-muted"></i>
                         @endif

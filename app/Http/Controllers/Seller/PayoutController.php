@@ -40,6 +40,9 @@ class PayoutController extends Controller
             'completedPayouts' => $completedPayouts,
             'pendingPayouts' => $pendingPayouts,
             'availableBalance' => $availableBalance,
+            'onlineEarningsHeld' => $user->online_earnings_held,
+            'codCommissionOwed' => $user->cod_commission_owed,
+            'outstandingDues' => $user->outstanding_platform_dues,
             'payouts' => $payouts,
             'lastPayout' => $lastPayout,
         ]);

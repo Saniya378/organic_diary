@@ -80,7 +80,9 @@
                             <th>Category</th>
                             <th>Base Price</th>
                             <th>Stock</th>
+                            <th>Batch & Freshness</th>
                             <th>Variants</th>
+                            <th>Platform Fee</th>
                             <th>Status</th>
                             <th>Deals (Subscriptions)</th>
                             <th class="text-end pe-4">Actions</th>
@@ -96,6 +98,7 @@
                                     'inactive' => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
                                 ];
                                 $badgeClass = $statusBadges[$product->status] ?? 'bg-light text-dark';
+                                $freshness = $product->freshness_status;
                             @endphp
                             <tr>
                                 <td class="ps-4">
@@ -111,10 +114,18 @@
                                             <a href="{{ route('shop.show', $product->slug) }}" target="_blank" class="fw-bold text-dark text-decoration-none hover-gold d-block">
                                                 {{ $product->name }}
                                             </a>
-                                            <div class="small text-muted">
-                                                {{ $product->unit }} &bull; 
+                                            <div class="small text-muted d-flex align-items-center flex-wrap gap-1 mt-0.5">
+                                                <span>{{ $product->unit }}</span>
                                                 @if($product->is_organic)
-                                                    <span class="text-success"><i class="bi bi-patch-check-fill text-gold"></i> Organic</span>
+                                                    &bull; <span class="text-success"><i class="bi bi-patch-check-fill text-gold"></i> Organic</span>
+                                                @endif
+                                                @if($product->reviews_count > 0)
+                                                    &bull;
+                                                    <button type="button" class="btn btn-link p-0 text-decoration-none text-xs fw-semibold text-warning-emphasis d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reviewsModal{{ $product->id }}" title="Click to view all reviews">
+                                                        <i class="bi bi-star-fill text-warning"></i> {{ number_format($product->reviews_avg_rating ?? 5, 1) }} ({{ $product->reviews_count }})
+                                                    </button>
+                                                @else
+                                                    &bull; <span class="text-muted text-2xs"><i class="bi bi-star text-muted"></i> No reviews</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -138,6 +149,16 @@
                                     @endif
                                 </td>
                                 <td>
+                                    <div>
+                                        <span class="badge {{ $freshness['badge_class'] }} text-2xs px-2 py-1 rounded-pill">
+                                            <i class="bi {{ $freshness['icon'] }} me-0.5"></i> {{ $freshness['label'] }}
+                                        </span>
+                                        @if($product->batch_no)
+                                            <div class="text-2xs text-muted font-monospace mt-0.5">#{{ $product->batch_no }}</div>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
                                     @if($product->variants->isNotEmpty())
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
                                             {{ $product->variants->count() }} Variants
@@ -145,6 +166,11 @@
                                     @else
                                         <span class="text-muted small">Standard</span>
                                     @endif
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill" title="Platform commission deducted upon sale">
+                                        {{ $product->effective_commission_rate }}%
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="badge {{ $badgeClass }} px-2 py-1 rounded-pill small">
@@ -171,7 +197,12 @@
                                     @endif
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="d-inline-flex gap-1">
+                                    <div class="d-inline-flex gap-1 align-items-center">
+                                        @if($product->reviews_count > 0)
+                                            <button type="button" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-2.5" data-bs-toggle="modal" data-bs-target="#reviewsModal{{ $product->id }}" title="View Customer Reviews">
+                                                <i class="bi bi-star-fill text-warning me-1"></i> {{ $product->reviews_count }}
+                                            </button>
+                                        @endif
                                         @if($isApprovedSeller)
                                             <a href="{{ route('seller.products.edit', $product->id) }}" class="btn btn-sm btn-outline-darkgreen rounded-pill px-3" title="Edit Product">
                                                 <i class="bi bi-pencil me-1"></i> Edit
@@ -207,6 +238,84 @@
             </div>
         @endif
     </div>
+
+    <!-- Product Reviews Modals -->
+    @foreach($products as $product)
+        <div class="modal fade" id="reviewsModal{{ $product->id }}" tabindex="-1" aria-labelledby="reviewsModalLabel{{ $product->id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-4 border-0 shadow">
+                    <div class="modal-header border-0 pb-0">
+                        <div>
+                            <h5 class="modal-title font-serif fw-bold text-dark-green" id="reviewsModalLabel{{ $product->id }}">
+                                Customer Reviews &bull; {{ $product->name }}
+                            </h5>
+                            <p class="text-muted small mb-0">Verified customer feedback from delivered orders</p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="bg-light p-3 rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="fs-2 fw-bold text-dark font-serif">{{ number_format($product->reviews_avg_rating ?? 5.0, 1) }}</span>
+                                <div>
+                                    <div class="text-warning">
+                                        @php $avgRatingVal = round($product->reviews_avg_rating ?? 5.0); @endphp
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <i class="bi bi-star{{ $i <= $avgRatingVal ? '-fill' : '' }}"></i>
+                                        @endfor
+                                    </div>
+                                    <small class="text-muted">{{ $product->reviews_count }} verified review(s)</small>
+                                </div>
+                            </div>
+                            <a href="{{ route('shop.show', $product->slug) }}#reviews-section" target="_blank" class="btn btn-sm btn-outline-darkgreen rounded-pill px-3">
+                                <i class="bi bi-box-arrow-up-right me-1"></i> View on Live Shop
+                            </a>
+                        </div>
+
+                        @if($product->reviews->isEmpty())
+                            <div class="text-center py-4 text-muted">
+                                <i class="bi bi-chat-square-text fs-1 d-block mb-2 text-muted"></i>
+                                <h6 class="fw-bold text-dark">No Customer Reviews Yet</h6>
+                                <p class="small mb-0">Once buyers receive their delivered orders and submit reviews, their verified ratings and comments will appear here.</p>
+                            </div>
+                        @else
+                            <div class="d-flex flex-column gap-3">
+                                @foreach($product->reviews as $rev)
+                                    <div class="p-3 rounded-4 border bg-white shadow-2xs">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2.5">
+                                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold shadow-xs" style="width: 36px; height: 36px; font-size: 0.85rem;">
+                                                    {{ strtoupper(substr($rev->user->name ?? 'B', 0, 1)) }}
+                                                </div>
+                                                <div>
+                                                    <strong class="text-dark d-block leading-tight">{{ $rev->user->name ?? 'Verified Buyer' }}</strong>
+                                                    <small class="text-muted text-2xs">
+                                                        <i class="bi bi-patch-check-fill text-success"></i> Verified Purchase &bull; {{ $rev->created_at->diffForHumans() }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div class="text-warning small bg-light px-2.5 py-1 rounded-pill border">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <i class="bi bi-star{{ $i <= $rev->rating ? '-fill' : '' }}"></i>
+                                                @endfor
+                                                <span class="ms-1 fw-bold text-dark text-xs">{{ $rev->rating }}.0</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-dark small mb-0 bg-light p-2.5 rounded-3">
+                                            "{{ $rev->comment ?? 'Customer left a star rating without written comment.' }}"
+                                        </p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endforeach
 
 </div>
 @endsection

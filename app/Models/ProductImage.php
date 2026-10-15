@@ -24,4 +24,25 @@ class ProductImage extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function getUrlAttribute(): string
+    {
+        if (empty($this->path)) {
+            return asset('images/products/fresh_milk.jpg');
+        }
+
+        if (file_exists(public_path('storage/' . $this->path))) {
+            return asset('storage/' . $this->path);
+        }
+
+        if (file_exists(public_path('images/' . $this->path))) {
+            return asset('images/' . $this->path);
+        }
+
+        if (file_exists(public_path($this->path))) {
+            return asset($this->path);
+        }
+
+        return asset('storage/' . $this->path);
+    }
 }

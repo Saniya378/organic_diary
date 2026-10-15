@@ -18,12 +18,16 @@ class OrderItem extends Model
         'unit_price',
         'quantity',
         'line_total',
+        'commission_rate',
+        'commission_amount',
     ];
 
     protected $casts = [
         'unit_price' => 'integer',
         'quantity' => 'integer',
         'line_total' => 'integer',
+        'commission_rate' => 'float',
+        'commission_amount' => 'integer',
     ];
 
     public function order(): BelongsTo

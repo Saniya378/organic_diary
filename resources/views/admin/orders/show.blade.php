@@ -77,6 +77,7 @@
                                 <th class="ps-3">Item</th>
                                 <th>Unit Price</th>
                                 <th>Quantity</th>
+                                <th>Admin Commission</th>
                                 <th class="text-end pe-3">Line Total</th>
                             </tr>
                         </thead>
@@ -102,6 +103,14 @@
                                     </td>
                                     <td>Rs {{ number_format($item->unit_price) }}</td>
                                     <td>x {{ $item->quantity }}</td>
+                                    <td>
+                                        <div class="small fw-semibold text-gold font-monospace">
+                                            Rs {{ number_format($item->commission_amount ?? (int)round(($item->line_total * ($item->commission_rate ?? 5)) / 100)) }}
+                                        </div>
+                                        <span class="badge bg-light text-muted border text-2xs">
+                                            {{ $item->commission_rate ?? ($item->product?->effective_commission_rate ?? 5) }}%
+                                        </span>
+                                    </td>
                                     <td class="text-end pe-3 fw-bold text-darkgreen">Rs {{ number_format($item->line_total) }}</td>
                                 </tr>
                             @endforeach
@@ -115,13 +124,19 @@
                                 <td colspan="3" class="text-end text-muted ps-3">Delivery Fee</td>
                                 <td class="text-end pe-3 text-dark">{{ $order->formatted_delivery_fee }}</td>
                             </tr>
-                            <tr>
-                                <td colspan="3" class="text-end text-muted ps-3">Platform Commission (5%)</td>
-                                <td class="text-end pe-3 text-muted">Rs {{ number_format($order->commission) }}</td>
+                            <tr class="bg-warning-subtle">
+                                <td colspan="3" class="text-end text-dark ps-3 fw-semibold">
+                                    <i class="bi bi-award text-gold me-1"></i> Admin Platform Commission
+                                </td>
+                                <td class="text-end pe-3 text-dark fw-bold font-serif">Rs {{ number_format($order->commission) }}</td>
                             </tr>
                             <tr class="table-light">
-                                <td colspan="3" class="text-end fw-bold text-dark ps-3 fs-6">Grand Total</td>
+                                <td colspan="3" class="text-end fw-bold text-dark ps-3 fs-6">Grand Total (Buyer Paid)</td>
                                 <td class="text-end pe-3 fw-bold text-darkgreen fs-5">{{ $order->formatted_total }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end text-muted ps-3 small">Farmer Net Payout (Subtotal - Commission)</td>
+                                <td class="text-end pe-3 fw-bold text-primary">Rs {{ number_format($order->subtotal - $order->commission) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -264,40 +279,18 @@
                     @endif
 
                     @if(!$orderPayment->isPaid())
-                        <div class="d-grid gap-2">
-                            <form action="{{ route('admin.payments.approve', $orderPayment->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="btn btn-success btn-sm w-100 rounded-pill fw-bold shadow-sm" onclick="return confirm('Are you sure you want to approve this payment?');">
-                                    <i class="bi bi-check2-circle me-1"></i> Approve &amp; Mark Paid
-                                </button>
-                            </form>
-
-                            <button type="button" class="btn btn-outline-danger btn-sm w-100 rounded-pill fw-semibold" data-bs-toggle="modal" data-bs-target="#rejectOrderPaymentModal">
-                                <i class="bi bi-x-circle me-1"></i> Reject Payment Proof
-                            </button>
+                        <div class="p-3 bg-light rounded-3 text-center border">
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1.5 rounded-pill small mb-1">
+                                <i class="bi bi-clock-history me-1"></i> {{ ucfirst(str_replace('_', ' ', $orderPayment->status)) }}
+                            </span>
+                            <div class="small text-muted">Payment verification and order confirmation is handled directly by the farm seller.</div>
                         </div>
-
-                        <!-- Reject Modal for Single Order -->
-                        <div class="modal fade" id="rejectOrderPaymentModal" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content rounded-4 border-0 shadow">
-                                    <form action="{{ route('admin.payments.reject', $orderPayment->id) }}" method="POST">
-                                        @csrf
-                                        <div class="modal-header border-bottom py-3">
-                                            <h5 class="modal-title font-serif fw-bold text-danger">Reject Payment Proof</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body p-4">
-                                            <label class="form-label small fw-bold text-dark">Reason for Rejection <span class="text-danger">*</span></label>
-                                            <textarea name="rejection_reason" class="form-control" rows="3" placeholder="Explain reason (e.g. TRX not found in bank statement)..." required></textarea>
-                                        </div>
-                                        <div class="modal-footer border-top py-2">
-                                            <button type="button" class="btn btn-sm btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold">Confirm Rejection</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
+                    @else
+                        <div class="p-3 bg-success-subtle bg-opacity-25 rounded-3 text-center border border-success-subtle">
+                            <span class="badge bg-success text-white px-3 py-1.5 rounded-pill small mb-1">
+                                <i class="bi bi-check-circle-fill me-1"></i> Paid &amp; Verified
+                            </span>
+                            <div class="small text-success fw-semibold">Verified and settled with farm seller.</div>
                         </div>
                     @endif
                 </div>

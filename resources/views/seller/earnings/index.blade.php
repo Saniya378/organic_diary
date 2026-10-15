@@ -74,13 +74,13 @@
         <div class="col-md-4">
             <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted small fw-semibold text-uppercase">Platform Commission (5%)</span>
+                    <span class="text-muted small fw-semibold text-uppercase">Platform Commission</span>
                     <div class="rounded-circle p-2 bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                         <i class="bi bi-percent fs-5"></i>
                     </div>
                 </div>
                 <h3 class="font-serif fw-bold text-danger mb-1">- Rs {{ number_format($totalCommission) }}</h3>
-                <div class="small text-muted">Platform service, cold-chain routing & logistics</div>
+                <div class="small text-muted">Product-based platform fee & cold-chain logistics</div>
             </div>
         </div>
 
@@ -119,7 +119,7 @@
                             <th>Date</th>
                             <th>Customer</th>
                             <th>Item Subtotal</th>
-                            <th>Commission (5%)</th>
+                            <th>Platform Commission</th>
                             <th>Net Farmer Payout</th>
                             <th>Status</th>
                             <th class="text-end pe-4">Payment</th>

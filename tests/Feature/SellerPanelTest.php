@@ -389,7 +389,7 @@ class SellerPanelTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Gross Farm Sales');
-        $response->assertSee('Platform Commission (5%)');
+        $response->assertSee('Platform Commission');
         $response->assertSee('Net Farmer Payable');
     }
 
@@ -398,6 +398,7 @@ class SellerPanelTest extends TestCase
         $fakePhoto = UploadedFile::fake()->create('farm.jpg', 100, 'image/jpeg');
 
         $response = $this->actingAs($this->approvedSeller)->put(route('seller.profile.update'), [
+            'name' => $this->approvedSeller->name,
             'farm_name' => 'Hunza Mountain Organics',
             'location' => 'Altit, Hunza',
             'description' => 'Updated high pasture farm story',

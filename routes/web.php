@@ -42,6 +42,9 @@ Route::get('/about', function () {
     return view('pages.about');
 })->name('about');
 
+// Live AI Customer Support Chatbot
+Route::post('/chatbot/message', [\App\Http\Controllers\ChatbotController::class, 'message'])->name('chatbot.message');
+
 /*
 |--------------------------------------------------------------------------
 | Shopping Cart Routes
@@ -165,8 +168,14 @@ Route::middleware(['auth', 'role:seller'])->prefix('seller')->name('seller.')->g
     Route::get('/orders', [\App\Http\Controllers\Seller\OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\Seller\OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order}/invoice', [\App\Http\Controllers\Seller\OrderController::class, 'invoice'])->name('orders.invoice');
+    Route::post('/orders/{order}/confirm', [\App\Http\Controllers\Seller\OrderController::class, 'confirm'])->name('orders.confirm');
     Route::post('/orders/{order}/advance-status', [\App\Http\Controllers\Seller\OrderController::class, 'advanceStatus'])->name('orders.advance-status');
     Route::post('/orders/{order}/cancel', [\App\Http\Controllers\Seller\OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/orders/{order}/approve-payment', [\App\Http\Controllers\Seller\OrderController::class, 'approvePayment'])->name('orders.approve-payment');
+    Route::post('/orders/{order}/reject-payment', [\App\Http\Controllers\Seller\OrderController::class, 'rejectPayment'])->name('orders.reject-payment');
+
+    // Buyer Payments Direct Verification for Seller
+    Route::get('/payments', [\App\Http\Controllers\Seller\PaymentController::class, 'index'])->name('payments.index');
 
     // Earnings & Analytics
     Route::get('/earnings', [\App\Http\Controllers\Seller\EarningsController::class, 'index'])->name('earnings.index');
@@ -175,6 +184,10 @@ Route::middleware(['auth', 'role:seller'])->prefix('seller')->name('seller.')->g
     Route::get('/payouts', [\App\Http\Controllers\Seller\PayoutController::class, 'index'])->name('payouts.index');
     Route::post('/payouts', [\App\Http\Controllers\Seller\PayoutController::class, 'store'])->name('payouts.store');
     Route::delete('/payouts/{payout}', [\App\Http\Controllers\Seller\PayoutController::class, 'cancel'])->name('payouts.cancel');
+
+    // Platform Commission Ledger & Dues
+    Route::get('/commissions', [\App\Http\Controllers\Seller\CommissionController::class, 'index'])->name('commissions.index');
+    Route::post('/commissions', [\App\Http\Controllers\Seller\CommissionController::class, 'store'])->name('commissions.store');
 
     // Farm Profile
     Route::get('/profile', [\App\Http\Controllers\Seller\ProfileController::class, 'edit'])->name('profile.edit');
@@ -202,10 +215,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/sellers/{sellerProfile}/suspend', [\App\Http\Controllers\Admin\SellerController::class, 'suspend'])->name('sellers.suspend');
     Route::post('/sellers/{sellerProfile}/reactivate', [\App\Http\Controllers\Admin\SellerController::class, 'reactivate'])->name('sellers.reactivate');
 
-    // Products Approval & Review
+    // Products Approval, Review & Commission Settings
     Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index'])->name('products.index');
     Route::post('/products/{product}/approve', [\App\Http\Controllers\Admin\ProductController::class, 'approve'])->name('products.approve');
     Route::post('/products/{product}/reject', [\App\Http\Controllers\Admin\ProductController::class, 'reject'])->name('products.reject');
+    Route::post('/products/{product}/commission', [\App\Http\Controllers\Admin\ProductController::class, 'updateCommission'])->name('products.commission');
 
     // Orders Management & Cancellation
     Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('orders.index');
@@ -237,6 +251,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/payouts', [\App\Http\Controllers\Admin\PayoutController::class, 'index'])->name('payouts.index');
     Route::post('/payouts/{payout}/approve', [\App\Http\Controllers\Admin\PayoutController::class, 'approve'])->name('payouts.approve');
     Route::post('/payouts/{payout}/reject', [\App\Http\Controllers\Admin\PayoutController::class, 'reject'])->name('payouts.reject');
+
+    // Seller Commission Collections
+    Route::get('/commissions', [\App\Http\Controllers\Admin\CommissionController::class, 'index'])->name('commissions.index');
+    Route::post('/commissions/{settlement}/approve', [\App\Http\Controllers\Admin\CommissionController::class, 'approve'])->name('commissions.approve');
+    Route::post('/commissions/{settlement}/reject', [\App\Http\Controllers\Admin\CommissionController::class, 'reject'])->name('commissions.reject');
 
     // Reports & Analytics + CSV Export
     Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');

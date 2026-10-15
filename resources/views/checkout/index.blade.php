@@ -158,7 +158,53 @@
                                 @enderror
                             </div>
 
-                            <div class="col-12">
+                            <!-- Preferred Delivery Time Slot -->
+                            <div class="col-12 mt-3">
+                                <label class="form-label fw-semibold mb-2">
+                                    <i class="bi bi-clock-history text-gold me-1"></i> Preferred Delivery Time Slot <span class="text-danger">*</span>
+                                </label>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="slot-card border rounded-3 p-3 d-flex flex-column h-100 cursor-pointer transition-all {{ old('delivery_slot', 'morning') === 'morning' ? 'border-primary bg-light' : '' }}" for="slot_morning" id="label_slot_morning">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <input class="form-check-input mt-0" type="radio" name="delivery_slot" id="slot_morning" value="morning" {{ old('delivery_slot', 'morning') === 'morning' ? 'checked' : '' }} onchange="selectDeliverySlot('morning')">
+                                                    <span class="fw-bold text-dark small">&#127749; Morning</span>
+                                                </div>
+                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill text-xs">Fresh</span>
+                                            </div>
+                                            <div class="small fw-semibold text-primary mb-1">6:00 AM &ndash; 9:00 AM</div>
+                                            <div class="text-xs text-muted">Fresh breakfast milk & raw butter.</div>
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="slot-card border rounded-3 p-3 d-flex flex-column h-100 cursor-pointer transition-all {{ old('delivery_slot') === 'evening' ? 'border-primary bg-light' : '' }}" for="slot_evening" id="label_slot_evening">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <input class="form-check-input mt-0" type="radio" name="delivery_slot" id="slot_evening" value="evening" {{ old('delivery_slot') === 'evening' ? 'checked' : '' }} onchange="selectDeliverySlot('evening')">
+                                                    <span class="fw-bold text-dark small">&#127750; Evening</span>
+                                                </div>
+                                            </div>
+                                            <div class="small fw-semibold text-primary mb-1">5:00 PM &ndash; 8:00 PM</div>
+                                            <div class="text-xs text-muted">Afternoon milking batch for dinner.</div>
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="slot-card border rounded-3 p-3 d-flex flex-column h-100 cursor-pointer transition-all {{ old('delivery_slot') === 'anytime' ? 'border-primary bg-light' : '' }}" for="slot_anytime" id="label_slot_anytime">
+                                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <input class="form-check-input mt-0" type="radio" name="delivery_slot" id="slot_anytime" value="anytime" {{ old('delivery_slot') === 'anytime' ? 'checked' : '' }} onchange="selectDeliverySlot('anytime')">
+                                                    <span class="fw-bold text-dark small">&#128666; Anytime</span>
+                                                </div>
+                                            </div>
+                                            <div class="small fw-semibold text-primary mb-1">9:00 AM &ndash; 5:00 PM</div>
+                                            <div class="text-xs text-muted">Flexible daytime doorstep dispatch.</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="save_address" name="save_address" value="1" {{ old('save_address') ? 'checked' : '' }}>
                                     <label class="form-check-label text-muted" for="save_address">
@@ -215,7 +261,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="fw-bold text-dark">Cash on Delivery (COD)</div>
-                                        <div class="small text-muted">Pay in cash when your fresh dairy products arrive at your doorstep in Gilgit-Baltistan.</div>
+                                        <div class="small text-muted">Pay in cash to the seller's delivery rider when your fresh dairy arrives at your doorstep in Gilgit-Baltistan.</div>
                                     </div>
                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Doorstep</span>
                                 </label>
@@ -244,8 +290,15 @@
                                         <span class="fw-bold text-dark small">
                                             &#127969; {{ $group['seller']->sellerProfile->farm_name ?? $group['seller']->name }}
                                         </span>
-                                        <span class="badge bg-white text-muted border small">Delivery: Rs {{ number_format($flatDeliveryFee) }}</span>
+                                        <span class="badge {{ ($group['delivery_fee'] ?? 0) === 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-white text-muted border' }} small">
+                                            {{ ($group['delivery_fee'] ?? 0) === 0 ? 'Free Delivery' : 'Delivery: Rs ' . number_format($group['delivery_fee']) }}
+                                        </span>
                                     </div>
+                                    @if(!empty($group['seller']->sellerProfile?->serviceable_cities))
+                                        <div class="text-xs text-muted mb-1">
+                                            <i class="bi bi-geo-alt me-1"></i> Delivers to: {{ implode(', ', $group['seller']->sellerProfile->serviceable_cities) }}
+                                        </div>
+                                    @endif
                                     <ul class="list-unstyled mb-0 small text-secondary ps-2">
                                         @foreach($group['items'] as $it)
                                             <li class="d-flex justify-content-between py-1">
@@ -266,8 +319,10 @@
                             <span class="fw-semibold">Rs {{ number_format($subtotal) }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Delivery Fee ({{ $distinctSellersCount }} &times; Rs {{ $flatDeliveryFee }})</span>
-                            <span class="fw-semibold text-dark">Rs {{ number_format($totalDeliveryFee) }}</span>
+                            <span class="text-muted">Total Delivery Fee ({{ $distinctSellersCount }} {{ Str::plural('Farm', $distinctSellersCount) }})</span>
+                            <span class="fw-semibold {{ $totalDeliveryFee === 0 ? 'text-success' : 'text-dark' }}">
+                                {{ $totalDeliveryFee === 0 ? 'FREE' : 'Rs ' . number_format($totalDeliveryFee) }}
+                            </span>
                         </div>
                         @if($discount > 0)
                             <div class="d-flex justify-content-between mb-2 text-success">
@@ -330,10 +385,22 @@
         cardElement.classList.add('border-primary', 'bg-light');
     }
 
+    function selectDeliverySlot(slot) {
+        document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('border-primary', 'bg-light'));
+        const label = document.getElementById('label_slot_' + slot);
+        if (label) {
+            label.classList.add('border-primary', 'bg-light');
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const checkedPayment = document.querySelector('input[name="payment_method"]:checked');
         if (checkedPayment) {
             selectPaymentMethod(checkedPayment.value);
+        }
+        const checkedSlot = document.querySelector('input[name="delivery_slot"]:checked');
+        if (checkedSlot) {
+            selectDeliverySlot(checkedSlot.value);
         }
     });
 </script>

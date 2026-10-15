@@ -33,6 +33,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:categories,slug'],
             'is_active' => ['nullable', 'boolean'],
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $slug = !empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['name']);
@@ -49,6 +50,7 @@ class CategoryController extends Controller
             'name' => $validated['name'],
             'slug' => $slug,
             'is_active' => $request->has('is_active'),
+            'commission_rate' => $request->filled('commission_rate') ? (float) $request->input('commission_rate') : null,
         ]);
 
         return back()->with('success', "Category '{$validated['name']}' created successfully.");
@@ -63,6 +65,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')->ignore($category->id)],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')->ignore($category->id)],
             'is_active' => ['nullable', 'boolean'],
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $slug = !empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['name']);
@@ -81,6 +84,7 @@ class CategoryController extends Controller
             'name' => $validated['name'],
             'slug' => $slug,
             'is_active' => $request->has('is_active'),
+            'commission_rate' => $request->filled('commission_rate') ? (float) $request->input('commission_rate') : null,
         ]);
 
         return back()->with('success', "Category '{$category->name}' updated successfully.");

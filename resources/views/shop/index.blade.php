@@ -186,7 +186,7 @@
                                 <!-- Product Image / Placeholder -->
                                 <div class="rounded-3 mb-3 d-flex align-items-center justify-content-center position-relative overflow-hidden" style="height: 190px; background: linear-gradient(135deg, #F5F1E8 0%, #E8E2D2 100%);">
                                     @if($product->primary_image)
-                                        <img src="{{ asset('storage/' . $product->primary_image) }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
+                                        <img src="{{ $product->primary_image_url }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='{{ asset('images/products/fresh_milk.jpg') }}';">
                                     @else
                                         <div class="text-center text-muted">
                                             <div class="rounded-circle d-inline-flex p-3 bg-white shadow-sm mb-1 text-success">

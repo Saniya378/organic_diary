@@ -154,19 +154,90 @@ class User extends Authenticatable
         return $this->hasMany(PayoutRequest::class, 'seller_id');
     }
 
+    public function commissionSettlements(): HasMany
+    {
+        return $this->hasMany(CommissionSettlement::class, 'seller_id');
+    }
+
     /**
-     * Lifetime net earnings for seller (delivered orders: subtotal minus platform commission).
+     * Total lifetime platform commission accrued across all delivered orders.
+     */
+    public function getTotalCommissionAccruedAttribute(): int
+    {
+        return (int) $this->sellerOrders()
+            ->where('status', 'delivered')
+            ->sum('commission');
+    }
+
+    /**
+     * Total commission settled and verified by admin.
+     */
+    public function getTotalCommissionSettledAttribute(): int
+    {
+        return (int) $this->commissionSettlements()
+            ->where('status', 'approved')
+            ->sum('amount');
+    }
+
+    /**
+     * Total commission settlements currently pending admin approval.
+     */
+    public function getPendingCommissionSettlementsTotalAttribute(): int
+    {
+        return (int) $this->commissionSettlements()
+            ->where('status', 'pending')
+            ->sum('amount');
+    }
+
+    /**
+     * Net outstanding commission owed by seller to website admin.
+     */
+    public function getOutstandingCommissionDueAttribute(): int
+    {
+        $due = $this->total_commission_accrued - $this->total_commission_settled - $this->pending_commission_settlements_total;
+        return max(0, (int) $due);
+    }
+
+    /**
+     * Lifetime net earnings for seller across all delivered orders (subtotal + delivery_fee - commission).
      */
     public function getLifetimeEarningsAttribute(): int
     {
         return (int) $this->sellerOrders()
             ->where('status', 'delivered')
-            ->selectRaw('COALESCE(SUM(subtotal - commission), 0) as total_net')
+            ->selectRaw('COALESCE(SUM(subtotal + delivery_fee - commission), 0) as total_net')
             ->value('total_net');
     }
 
     /**
-     * Total amount already paid out / transferred.
+     * Online payment earnings held by platform for delivered orders (subtotal + delivery_fee - commission).
+     */
+    public function getOnlineEarningsHeldAttribute(): int
+    {
+        return (int) $this->sellerOrders()
+            ->where('status', 'delivered')
+            ->whereHas('orderGroup', function ($q) {
+                $q->where('payment_method', '!=', 'cod');
+            })
+            ->selectRaw('COALESCE(SUM(subtotal + delivery_fee - commission), 0) as online_net')
+            ->value('online_net');
+    }
+
+    /**
+     * COD platform commissions collected in cash by seller on delivered orders, owed to platform.
+     */
+    public function getCodCommissionOwedAttribute(): int
+    {
+        return (int) $this->sellerOrders()
+            ->where('status', 'delivered')
+            ->whereHas('orderGroup', function ($q) {
+                $q->where('payment_method', 'cod');
+            })
+            ->sum('commission');
+    }
+
+    /**
+     * Total amount already paid out / transferred to seller.
      */
     public function getCompletedPayoutsTotalAttribute(): int
     {
@@ -187,10 +258,22 @@ class User extends Authenticatable
 
     /**
      * Current available balance that can be requested for withdrawal.
+     * Calculated as: Online earnings held by platform MINUS COD commissions collected MINUS existing payouts.
      */
     public function getAvailablePayoutBalanceAttribute(): int
     {
-        $available = $this->lifetime_earnings - $this->completed_payouts_total - $this->pending_payouts_total;
+        $netPlatformBalance = $this->online_earnings_held - $this->cod_commission_owed;
+        $available = $netPlatformBalance - $this->completed_payouts_total - $this->pending_payouts_total;
         return max(0, (int) $available);
+    }
+
+    /**
+     * Outstanding COD platform commission due from seller if COD orders exceed online earnings.
+     */
+    public function getOutstandingPlatformDuesAttribute(): int
+    {
+        $netPlatformBalance = $this->online_earnings_held - $this->cod_commission_owed;
+        $dues = ($this->completed_payouts_total + $this->pending_payouts_total) - $netPlatformBalance;
+        return max(0, (int) $dues);
     }
 }

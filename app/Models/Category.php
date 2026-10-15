@@ -14,10 +14,12 @@ class Category extends Model
         'name',
         'slug',
         'is_active',
+        'commission_rate',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'commission_rate' => 'float',
     ];
 
     public function products(): HasMany

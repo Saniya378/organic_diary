@@ -18,11 +18,11 @@
         </ol>
     </nav>
 
-    <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-4">
+    <div class="alert alert-success border-0 rounded-4 shadow-sm mb-4 bg-success-subtle text-success-emphasis">
         <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+            <i class="bi bi-check-circle-fill fs-5 text-success"></i>
             <div>
-                <strong>Re-verification Notice:</strong> Saving changes to this product will set its status to <em>Pending</em> until verified by the marketplace team.
+                <strong>Instant Update:</strong> Changes saved to this product will be updated live immediately.
             </div>
         </div>
     </div>
@@ -146,6 +146,40 @@
                         <label for="produced_on" class="form-label fw-semibold small">Date of Milking / Production</label>
                         <input type="date" class="form-control form-control-sm @error('produced_on') is-invalid @enderror" id="produced_on" name="produced_on" value="{{ old('produced_on', optional($product->produced_on)->format('Y-m-d')) }}">
                         @error('produced_on')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="shelf_life_days" class="form-label fw-semibold small">
+                            <i class="bi bi-hourglass-split text-gold me-1"></i> Shelf Life (Days)
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control @error('shelf_life_days') is-invalid @enderror" id="shelf_life_days" name="shelf_life_days" min="1" max="1000" placeholder="e.g. 3 (Milk), 7 (Dahi)" value="{{ old('shelf_life_days', $product->shelf_life_days) }}">
+                            <span class="input-group-text">Days</span>
+                        </div>
+                        <small class="text-muted text-2xs">e.g., Fresh Milk: 3d • Yogurt: 7d • Paneer: 5d • Desi Ghee: 365d</small>
+                        @error('shelf_life_days')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="expires_at" class="form-label fw-semibold small">
+                            <i class="bi bi-calendar-check text-success me-1"></i> Calculated Batch Expiry
+                        </label>
+                        <input type="date" class="form-control form-control-sm @error('expires_at') is-invalid @enderror" id="expires_at" name="expires_at" value="{{ old('expires_at', optional($product->expires_at)->format('Y-m-d')) }}">
+                        <div class="mt-1" id="expiryHelperText">
+                            @if($product->expires_at)
+                                @php $badge = $product->freshness_status; @endphp
+                                <span class="badge {{ $badge['badge_class'] }} text-2xs">
+                                    <i class="bi {{ $badge['icon'] }} me-1"></i> {{ $badge['label'] }} ({{ $product->expires_at->format('M d, Y') }})
+                                </span>
+                            @else
+                                <small class="text-muted text-2xs">Auto-calculated from Milking Date + Shelf Life.</small>
+                            @endif
+                        </div>
+                        @error('expires_at')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -288,6 +322,33 @@
             form.submit();
         }
     }
+
+    function recalculateExpiryDate() {
+        const producedOnInput = document.getElementById('produced_on');
+        const shelfLifeInput = document.getElementById('shelf_life_days');
+        const expiresAtInput = document.getElementById('expires_at');
+        const helper = document.getElementById('expiryHelperText');
+
+        if (producedOnInput && shelfLifeInput && expiresAtInput) {
+            const producedVal = producedOnInput.value;
+            const days = parseInt(shelfLifeInput.value, 10);
+
+            if (producedVal && !isNaN(days) && days > 0) {
+                const pDate = new Date(producedVal);
+                pDate.setDate(pDate.getDate() + days);
+                const yyyy = pDate.getFullYear();
+                const mm = String(pDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(pDate.getDate()).padStart(2, '0');
+                expiresAtInput.value = `${yyyy}-${mm}-${dd}`;
+                if (helper) {
+                    helper.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle text-2xs"><i class="bi bi-check-circle"></i> Batch valid for ${days} days until ${dd}/${mm}/${yyyy}.</span>`;
+                }
+            }
+        }
+    }
+
+    document.getElementById('produced_on')?.addEventListener('change', recalculateExpiryDate);
+    document.getElementById('shelf_life_days')?.addEventListener('input', recalculateExpiryDate);
 </script>
 
 <form id="deleteProductImageForm" method="POST" style="display: none;">

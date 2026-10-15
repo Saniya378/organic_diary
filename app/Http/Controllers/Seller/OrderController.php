@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Seller;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OrderConfirmedBuyerMail;
+use App\Mail\OrderDeliveredBuyerMail;
 use App\Mail\OrderStatusUpdatedBuyerMail;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Services\CheckoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +74,25 @@ class OrderController extends Controller
     }
 
     /**
+     * Dedicated action to confirm an order directly by seller.
+     */
+    public function confirm(Request $request, Order $order): RedirectResponse
+    {
+        Gate::authorize('update', $order);
+
+        if ($order->status === 'cancelled') {
+            return back()->with('error', "Order #{$order->order_no} is cancelled and cannot be confirmed.");
+        }
+
+        if (in_array($order->status, ['confirmed', 'packing', 'in_transit', 'delivered'])) {
+            return back()->with('info', "Order #{$order->order_no} is already confirmed.");
+        }
+
+        $request->merge(['target_status' => 'confirmed']);
+        return $this->advanceStatus($request, $order);
+    }
+
+    /**
      * Advance order status one step at a time with history logging, COD settlement, and buyer email.
      */
     public function advanceStatus(Request $request, Order $order): RedirectResponse
@@ -93,6 +117,26 @@ class OrderController extends Controller
         $note = $request->input('note');
 
         DB::transaction(function () use ($order, $targetStatus, $request, $note) {
+            // If advancing pending_payment order directly to confirmed, decrement stock if not yet decremented
+            if ($order->status === 'pending_payment') {
+                $order->loadMissing('items');
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                        if ($product) {
+                            $product->decrement('stock', $item->quantity);
+                            $product->fresh()->checkAndDispatchLowStockAlert();
+                        }
+                    }
+                    if ($item->variant_id) {
+                        $variant = ProductVariant::where('id', $item->variant_id)->lockForUpdate()->first();
+                        if ($variant) {
+                            $variant->decrement('stock', $item->quantity);
+                        }
+                    }
+                }
+            }
+
             $updateData = [
                 'status' => $targetStatus,
             ];
@@ -136,7 +180,12 @@ class OrderController extends Controller
                 'changed_by' => Auth::id(),
             ]);
 
-            // Real-time Notification to Buyer
+            // Eager load full relations for notifications and emails
+            $order->load(['buyer', 'seller.sellerProfile', 'orderGroup.payment', 'items.product', 'items.variant']);
+
+            $farmName = $order->seller?->sellerProfile?->farm_name ?? $order->seller?->name ?? 'Farm';
+
+            // Real-time In-App Notification to Buyer
             try {
                 $statusIcons = [
                     'confirmed' => 'bi-check-circle-fill',
@@ -144,18 +193,24 @@ class OrderController extends Controller
                     'in_transit' => 'bi-truck',
                     'delivered' => 'bi-house-check-fill',
                 ];
+
                 $statusTitle = match ($targetStatus) {
-                    'confirmed' => "Order #{$order->order_no} Confirmed by Farm",
-                    'packing' => "Order #{$order->order_no} is Being Packed",
+                    'confirmed' => "Order #{$order->order_no} Confirmed by {$farmName}!",
+                    'packing' => "Order #{$order->order_no} is Being Packed by {$farmName}",
                     'in_transit' => "Order #{$order->order_no} is On The Way!",
                     'delivered' => "Order #{$order->order_no} Delivered Successfully!",
                     default => "Order #{$order->order_no} Status Updated",
                 };
 
+                $notificationBody = match ($targetStatus) {
+                    'confirmed' => "Good news! {$farmName} has verified harvest availability and confirmed your order (#{$order->order_no}). Cold-chain preparation has started.",
+                    default => $historyNote,
+                };
+
                 \App\Models\Notification::sendTo(
                     $order->buyer_id,
                     $statusTitle,
-                    $historyNote,
+                    $notificationBody,
                     route('orders.show', $order->id),
                     'order_' . $targetStatus,
                     $statusIcons[$targetStatus] ?? 'bi-bell-fill'
@@ -164,27 +219,33 @@ class OrderController extends Controller
                 \Illuminate\Support\Facades\Log::error('Notification error on order status update: ' . $e->getMessage());
             }
 
-            // Email buyer
+            // Email to Buyer
             try {
                 if ($order->buyer && $order->buyer->email) {
-                    if ($targetStatus === 'delivered') {
-                        $order->load(['items.product', 'seller.sellerProfile', 'buyer']);
+                    if ($targetStatus === 'confirmed') {
+                        Mail::to($order->buyer->email)->send(
+                            new \App\Mail\OrderConfirmedBuyerMail($order, $historyNote)
+                        );
+                        \Illuminate\Support\Facades\Log::info("OrderConfirmedBuyerMail sent to {$order->buyer->email} for Order #{$order->order_no}");
+                    } elseif ($targetStatus === 'delivered') {
                         Mail::to($order->buyer->email)->send(
                             new \App\Mail\OrderDeliveredBuyerMail($order, $historyNote)
                         );
+                        \Illuminate\Support\Facades\Log::info("OrderDeliveredBuyerMail sent to {$order->buyer->email} for Order #{$order->order_no}");
                     } else {
                         Mail::to($order->buyer->email)->send(
                             new OrderStatusUpdatedBuyerMail($order, $targetStatus, $historyNote)
                         );
+                        \Illuminate\Support\Facades\Log::info("OrderStatusUpdatedBuyerMail sent to {$order->buyer->email} for Order #{$order->order_no} ({$targetStatus})");
                     }
                 }
             } catch (\Exception $e) {
-                // Log and continue
+                \Illuminate\Support\Facades\Log::error("Failed to send order status email for Order #{$order->order_no}: " . $e->getMessage());
             }
         });
 
         $statusLabel = ucfirst(str_replace('_', ' ', $targetStatus));
-        return back()->with('success', "Order #{$order->order_no} status updated to '{$statusLabel}'. Customer notification sent.");
+        return back()->with('success', "Order #{$order->order_no} status updated to '{$statusLabel}'. Customer notification and confirmation email sent.");
     }
 
     /**
@@ -275,7 +336,7 @@ class OrderController extends Controller
     protected function determineNextStatus(string $currentStatus): ?string
     {
         return match ($currentStatus) {
-            'placed', 'new' => 'confirmed',
+            'placed', 'new', 'pending_payment' => 'confirmed',
             'confirmed' => 'packing',
             'packing' => 'in_transit',
             'in_transit' => 'delivered',
@@ -286,14 +347,161 @@ class OrderController extends Controller
     /**
      * Display printable PDF-ready packing slip & invoice for seller.
      */
-    public function invoice(Order $order): View
+     public function invoice(Order $order): View
+     {
+         Gate::authorize('view', $order);
+
+         $order->load(['orderGroup.payment', 'items.product', 'items.variant', 'seller.sellerProfile', 'buyer']);
+
+         return view('seller.orders.invoice', [
+             'order' => $order,
+         ]);
+     }
+
+    /**
+     * Approve and verify customer payment directly by the Seller.
+     */
+    public function approvePayment(Request $request, Order $order): RedirectResponse
     {
-        Gate::authorize('view', $order);
+        Gate::authorize('update', $order);
 
-        $order->load(['orderGroup.payment', 'items.product', 'items.variant', 'seller.sellerProfile', 'buyer']);
+        if ($order->payment_status === 'paid') {
+            return back()->with('info', 'This payment is already verified and marked as Paid.');
+        }
 
-        return view('seller.orders.invoice', [
-            'order' => $order,
+        DB::transaction(function () use ($request, $order) {
+            $order->load(['items.product', 'items.variant', 'orderGroup.payment']);
+            $orderGroup = $order->orderGroup;
+            $payment = $orderGroup ? $orderGroup->payment : null;
+
+            // If order was waiting for payment, adjust inventory and move to placed
+            if ($order->status === 'pending_payment') {
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+                        if ($product) {
+                            $product->decrement('stock', $item->quantity);
+                            $product->fresh()->checkAndDispatchLowStockAlert();
+                        }
+                    }
+                    if ($item->variant_id) {
+                        $variant = ProductVariant::where('id', $item->variant_id)->lockForUpdate()->first();
+                        if ($variant) {
+                            $variant->decrement('stock', $item->quantity);
+                        }
+                    }
+                }
+
+                $order->update([
+                    'status' => 'placed',
+                    'payment_status' => 'paid',
+                ]);
+            } else {
+                $order->update([
+                    'payment_status' => 'paid',
+                ]);
+            }
+
+            // Update parent payment record
+            if ($payment) {
+                $allOrdersPaid = $orderGroup->orders()->where('payment_status', '!=', 'paid')->where('id', '!=', $order->id)->count() === 0;
+                if ($allOrdersPaid) {
+                    $payment->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                        'verified_by' => Auth::id(),
+                        'verified_at' => now(),
+                        'admin_notes' => 'Payment verified directly by seller: ' . Auth::user()->name,
+                    ]);
+                }
+            }
+
+            $sellerFarmName = Auth::user()->sellerProfile->farm_name ?? Auth::user()->name;
+
+            OrderStatusHistory::create([
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'note' => "Payment of Rs " . number_format($order->total) . " verified and accepted directly by seller ({$sellerFarmName}). TRX ID: " . ($payment->transaction_id ?? $payment->gateway_ref ?? 'N/A'),
+                'changed_by' => Auth::id(),
+            ]);
+
+            // Real-time Notification to Buyer
+            try {
+                \App\Models\Notification::sendTo(
+                    $order->buyer_id,
+                    "Payment Verified by {$sellerFarmName}",
+                    "Your payment of Rs " . number_format($order->total) . " for Order #{$order->order_no} was verified & accepted by the farm! Fresh harvest preparation has begun.",
+                    route('orders.show', $order->id),
+                    'payment_approved',
+                    'bi-patch-check-fill'
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Seller payment approval notification error: ' . $e->getMessage());
+            }
+
+            // Send confirmation email to buyer
+            try {
+                if ($orderGroup) {
+                    app(CheckoutService::class)->sendOrderConfirmationEmails($orderGroup);
+                }
+            } catch (\Exception $e) {}
+        });
+
+        return back()->with('success', "Payment for Order #{$order->order_no} has been verified and confirmed successfully!");
+    }
+
+    /**
+     * Reject customer payment transaction directly by the Seller.
+     */
+    public function rejectPayment(Request $request, Order $order): RedirectResponse
+    {
+        Gate::authorize('update', $order);
+
+        $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:500'],
         ]);
+
+        $reason = $request->input('rejection_reason');
+
+        DB::transaction(function () use ($order, $reason) {
+            $order->update([
+                'payment_status' => 'rejected',
+            ]);
+
+            $orderGroup = $order->orderGroup;
+            if ($orderGroup && $orderGroup->payment) {
+                $orderGroup->payment->update([
+                    'status' => 'rejected',
+                    'admin_notes' => "Rejected by Seller: " . $reason,
+                    'verified_by' => Auth::id(),
+                    'verified_at' => now(),
+                ]);
+            }
+
+            $sellerFarmName = Auth::user()->sellerProfile->farm_name ?? Auth::user()->name;
+
+            OrderStatusHistory::create([
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'note' => "Payment verification rejected by seller ({$sellerFarmName}). Reason: {$reason}",
+                'changed_by' => Auth::id(),
+            ]);
+
+            // Notification to Buyer
+            try {
+                \App\Models\Notification::sendTo(
+                    $order->buyer_id,
+                    "Payment Receipt Rejected for Order #{$order->order_no}",
+                    "{$sellerFarmName} could not verify your payment receipt: {$reason}. Please re-upload a valid transaction slip.",
+                    route('orders.show', $order->id),
+                    'payment_rejected',
+                    'bi-x-circle-fill'
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Seller payment rejection notification error: ' . $e->getMessage());
+            }
+        });
+
+        return back()->with('success', "Payment for Order #{$order->order_no} was rejected. The customer has been notified to re-submit proof.");
     }
 }
